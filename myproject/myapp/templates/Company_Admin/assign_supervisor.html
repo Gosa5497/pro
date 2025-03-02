@@ -1,0 +1,19 @@
+{% extends 'company_admin/base.html' %}
+{% block title %}Assign Supervisor{% endblock %}
+
+{% block content %}
+<h1>Assign Supervisor</h1>
+<p>Assign a supervisor to {{ application.student.user.get_full_name }}'s application.</p>
+<form method="post" class="mt-4">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="supervisor" class="form-label">Select Supervisor</label>
+        <select name="supervisor" id="supervisor" class="form-select">
+            {% for supervisor in supervisors %}
+            <option value="{{ supervisor.id }}">{{ supervisor.user.get_full_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Assign</button>
+</form>
+{% endblock %}

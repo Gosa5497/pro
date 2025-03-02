@@ -1,0 +1,33 @@
+{% extends 'departement_head/base.html' %}
+
+{% block content %}
+<div class="register-logo">
+    <a href="#"><b>Advisor</b> Registration</a>
+</div>
+
+<div class="card">
+    <div class="card-body register-card-body">
+        <p class="login-box-msg">Register a new membership</p>
+
+        <form method="post" action="{% url 'add_advisor' %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="row">
+                <div class="col-8">
+                    <div class="icheck-primary">
+                        <input type="checkbox" id="agreeTerms" name="terms" value="1">
+                        <label for="agreeTerms">
+                            I agree to the <a href="#">terms</a>
+                        </label>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <button type="submit" class="btn btn-primary btn-block">Register</button>
+                </div>
+            </div>
+        </form>
+
+        <a href="{% url 'login' %}" class="text-center">I already have a membership</a>
+    </div>
+</div>
+{% endblock %}

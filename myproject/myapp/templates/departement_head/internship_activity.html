@@ -1,0 +1,106 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Internship Activity{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Internship Activity</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Internship Activity</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Create Form Button -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <a href="{% url 'generate_evaluation_form' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Create Form
+                    </a>
+                    <a href="{% url 'form_list' %}" class="btn btn-info">
+                        <i class="fas fa-list"></i> View Generated Forms
+                    </a>
+                    <a href="{% url 'create_chat_group' %}" class="btn btn-primary">
+                        <i class="fas fa-comments"></i> Create Chat Group
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-warning">
+                        <i class="fas fa-users-cog"></i> Manage Internship Batches
+                    </a>
+                </div>
+            </div>
+
+            <!-- Internship Activity Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Internship Details</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Internship</th>
+                                <th>Student</th>
+                                <th>Company</th>
+                                <th>Tasks</th>
+                                <th>Evaluations</th>
+                                <th>Chat Group</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in internship_data %}
+                                <tr>
+                                    <td>{{ data.internship.description }}</td>
+                                    <td>{{ data.internship.student.user.get_full_name }}</td>
+                                    <td>{{ data.internship.company.name }}</td>
+                                    <td>
+                                        <ul>
+                                            {% for task in data.tasks %}
+                                                <li>{{ task.description }} (Status: {{ task.status }})</li>
+                                            {% empty %}
+                                                <li>No tasks found.</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            {% for evaluation in data.evaluations %}
+                                                <li>Score: {{ evaluation.score }} (Comments: {{ evaluation.comments }})</li>
+                                            {% empty %}
+                                                <li>No evaluations found.</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {% if data.internship.chat_group %}
+                                            <a href="{% url 'home' data.internship.chat_group.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i> View Chat
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">No Chat Group</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No internships found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

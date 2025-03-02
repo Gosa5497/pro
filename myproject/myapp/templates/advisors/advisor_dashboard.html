@@ -1,0 +1,144 @@
+{% extends 'advisors/base.html' %}
+
+{% block title %}University Advisor Dashboard{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">
+                        Welcome, <span class="text-primary">{{ user.get_full_name|default:user.username }}</span>
+                    </h1>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main Content -->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-md-4">
+                    <!-- Student Applications Section -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Review Student Applications</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Review and approve or reject student internship applications.</p>
+                            <a href="{% url 'advisor_give_feedback' %}" class="btn btn-primary">
+                                <i class="fas fa-file-alt"></i> Manage Applications
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Assigned Students Section -->
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Your Assigned Students</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>View and monitor the progress of your assigned students.</p>
+                            <a href="{% url 'assigned_students' %}" class="btn btn-success">
+                                <i class="fas fa-users"></i> View Students
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Column -->
+                <div class="col-md-4">
+                    <!-- Reports Section -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Reports</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Generate and view reports on student progress and performance.</p>
+                            <a href="{% url 'advisor_reports' %}" class="btn btn-info">
+                                <i class="fas fa-chart-line"></i> View Reports
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Section -->
+                    <div class="card card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">Provide Feedback & Guidance</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Provide feedback and guidance to students on their internship progress.</p>
+                            <a href="{% url 'advisor_give_feedback' %}" class="btn btn-warning">
+                                <i class="fas fa-comment"></i> Give Feedback
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-md-4">
+                    <!-- Performance Evaluation Section -->
+                    <div class="card card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">Evaluate Student Performance</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Evaluate the performance of your assigned students.</p>
+                            <a href="{% url 'advisor_give_feedback' %}" class="btn btn-danger">
+                                <i class="fas fa-star"></i> Evaluate Performance
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Communication Section -->
+                    <div class="card card-secondary">
+                        <div class="card-header">
+                            <h3 class="card-title">Communication</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Communicate with students and industry supervisors.</p>
+                            <a href="{% url 'advisor_communication' %}" class="btn btn-secondary">
+                                <i class="fas fa-envelope"></i> Start Communication
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chat Group Section -->
+                    <div class="card card-purple">
+                        <div class="card-header">
+                            <h3 class="card-title">Chat Group</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Join the chat group to communicate with your peers and students.</p>
+                            
+                            <a href="{% url 'list_chat_groups'  %}" class="btn btn-purple mb-2">
+                                <i class="fas fa-comments"></i>join chat group
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </section>
+</div>
+
+<!-- Custom CSS for the purple button -->
+<style>
+.btn-purple {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
+}
+
+.btn-purple:hover {
+    background-color: #5a3a9e;
+    border-color: #5a3a9e;
+    color: white;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'students/base.html' %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">
+                        Welcome, <span class="text-primary">{{ user.get_full_name|default:user.username }}</span>
+                    </h1>
+                    <p class="text-center"><h1>Your internship applications, progress, and feedback will appear here.</h1></p>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main Content -->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-md-4">
+                    <!-- Profile Section -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Your Profile</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Update your personal and academic information.</p>
+                            <a href="{% url 'profile' %}" class="btn btn-primary">
+                                <i class="fas fa-user-edit"></i> Edit Profile
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Internship Applications Section -->
+                    <!-- Internship Applications Section -->
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Your Internship Applications</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>check list of exist internship for apply</p>
+                            <a href="{% url 'existing_internships' %}" class="btn btn-info mt-2">
+                                <i class="fas fa-list"></i> View Existing Internships
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Column -->
+                <div class="col-md-4">
+                    <!-- Progress Section -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Log Your Daily/Weekly Reports</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Submit your daily or weekly progress reports.</p>
+                            <a href="{% url 'generate_logbook_form' %}" class="btn btn-info">
+                                <i class="fas fa-clipboard-list"></i> Submit Report
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Section -->
+                    <div class="card card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">Feedback</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>View feedback from industry supervisors and university advisors.</p>
+                            <a href="{% url 'feedback' %}" class="btn btn-warning">
+                                <i class="fas fa-comments"></i> View Feedback
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-md-4">
+                    <!-- Request Support Section -->
+                    <div class="card card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">Request Support</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Request assistance from your advisor or supervisor.</p>
+                            <a href="{% url 'request_support' %}" class="btn btn-danger">
+                                <i class="fas fa-life-ring"></i> Request Assistance
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Final Report Section -->
+                    <div class="card card-secondary">
+                        <div class="card-header">
+                            <h3 class="card-title">Submit Final Internship Report</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Submit your final internship report for evaluation.</p>
+                            <a href="{% url 'final_report' %}" class="btn btn-secondary">
+                                <i class="fas fa-file-alt"></i> Submit Final Report
+                            </a>
+                        </div>
+                    </div>
+
+                  <!-- Add this card to the right column -->
+                                <!-- Add this card to the right column -->
+                <div class="card card-purple">
+                    <div class="card-header">
+                        <h3 class="card-title">Chat Groups</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>View and join chat groups you are a member of.</p>
+                        <a href="{% url 'list_chat_groups' %}" class="btn btn-purple">
+                            <i class="fas fa-comments"></i> View Chat Groups
+                        </a>
+                    </div>
+                </div>
+                            </div>
+                        </div><!-- /.row -->
+                    </div><!-- /.container-fluid -->
+                </section>
+            </div>
+
+<!-- Custom CSS for the purple button -->
+<style>
+.btn-purple {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
+}
+
+.btn-purple:hover {
+    background-color: #5a3a9e;
+    border-color: #5a3a9e;
+    color: white;
+}
+</style>
+{% endblock %}

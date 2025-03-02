@@ -1,0 +1,209 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Student Progress - {{ student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Student Progress - {{ student.user.get_full_name }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'student_management' %}">Student Management</a></li>
+                        <li class="breadcrumb-item active">Student Progress</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Export Button -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <a href="{% url 'export_student_progress' student.user.id %}" class="btn btn-success">
+                        <i class="fas fa-download"></i> Export Progress Report
+                    </a>
+                </div>
+            </div>
+
+            <!-- Progress Charts -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Completion</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="taskChart" style="height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Evaluation Scores</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="evaluationChart" style="height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Internship Progress -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Internship Progress</h3>
+                        </div>
+                        <div class="card-body">
+                            {% if progress_data %}
+                                {% for data in progress_data %}
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h4 class="card-title">Internship at {{ data.internship.company.name }}</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <h5>Tasks</h5>
+                                            <ul>
+                                                {% for task in data.tasks %}
+                                                    <li>
+                                                        <strong>{{ task.description }}</strong>
+                                                        <br>
+                                                        Deadline: {{ task.deadline }}
+                                                        <br>
+                                                        Status: <span class="badge bg-{{ task.status|lower }}">{{ task.status }}</span>
+                                                    </li>
+                                                {% empty %}
+                                                    <li>No tasks found.</li>
+                                                {% endfor %}
+                                            </ul>
+
+                                            <h5>Evaluations</h5>
+                                            <ul>
+                                                {% for evaluation in data.evaluations %}
+                                                    <li>
+                                                        <strong>Date:</strong> {{ evaluation.date }}
+                                                        <br>
+                                                        <strong>Score:</strong> {{ evaluation.score }}
+                                                        <br>
+                                                        <strong>Comments:</strong> {{ evaluation.comments }}
+                                                    </li>
+                                                {% empty %}
+                                                    <li>No evaluations found.</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p>No internship data found for this student.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Feedback</h3>
+                        </div>
+                        <div class="card-body">
+                            {% if student.feedbacks.all %}
+                                <ul class="list-group">
+                                    {% for feedback in student.feedbacks.all %}
+                                        <li class="list-group-item">
+                                            <strong>{{ feedback.submitted_by.get_full_name }}</strong> ({{ feedback.created_at }}):
+                                            <p>{{ feedback.feedback }}</p>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>No feedback available.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Form -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Provide Feedback</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'submit_feedback' student.user.id %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="feedback">Feedback</label>
+                                    <textarea class="form-control" id="feedback" name="feedback" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(function () {
+        // Task Completion Chart (Doughnut)
+        var taskChartCanvas = document.getElementById('taskChart').getContext('2d');
+        var taskChart = new Chart(taskChartCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending'],
+                datasets: [{
+                    data: [{{ completed_tasks }}, {{ pending_tasks }}], // Pass data from the view
+                    backgroundColor: ['#4CAF50', '#FFC107'],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+
+        // Evaluation Scores Chart (Bar)
+        var evaluationChartCanvas = document.getElementById('evaluationChart').getContext('2d');
+        var evaluationChart = new Chart(evaluationChartCanvas, {
+            type: 'bar',
+            data: {
+                labels: {{ evaluation_dates|safe }}, // Pass evaluation dates from the view
+                datasets: [{
+                    label: 'Scores',
+                    data: {{ evaluation_scores|safe }}, // Pass evaluation scores from the view
+                    backgroundColor: '#3F51B5',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100, // Assuming scores are out of 100
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

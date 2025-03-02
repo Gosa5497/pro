@@ -1,0 +1,30 @@
+{% extends 'departement_head/base.html' %}
+{% block title %}Chat with Advisors{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Chat with Advisors</h1>
+    </section>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="list-group">
+                                {% for advisor in advisors %}
+                                <li class="list-group-item">
+                                    <a href="{% url 'private_chat' advisor.user.id %}">
+                                        {{ advisor.user.get_full_name }} ({{ advisor.user.username }})
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

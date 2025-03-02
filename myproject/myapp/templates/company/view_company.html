@@ -1,0 +1,84 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Company Details - {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>{{ company.name }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'company_management' %}">Companies</a></li>
+                        <li class="breadcrumb-item active">Details</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Company Info -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Company Information</h3>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Industry</dt>
+                        <dd class="col-sm-9">{{ company.industry }}</dd>
+                        <dt class="col-sm-3">Location</dt>
+                        <dd class="col-sm-9">{{ company.location }}</dd>
+                        <dt class="col-sm-3">Contact Email</dt>
+                        <dd class="col-sm-9">{{ company.contact_email }}</dd>
+                        <dt class="col-sm-3">Contact Phone</dt>
+                        <dd class="col-sm-9">{{ company.contact_phone }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Chat Buttons -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    
+                </div>
+                <div class="col-md-6">
+                    
+                </div>
+            </div>
+
+            <!-- Interaction History -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Department Head Interactions</h3>
+                </div>
+                <div class="card-body">
+                    {% if feedbacks %}
+                        <div class="timeline">
+                            {% for feedback in feedbacks %}
+                                <div class="time-label">
+                                    <span class="bg-blue">{{ feedback.created_at|date:"d M Y" }}</span>
+                                </div>
+                                <div>
+                                    <i class="fas fa-comment bg-green"></i>
+                                    <div class="timeline-item">
+                                        <h3 class="timeline-header">Feedback from {{ feedback.submitted_by.get_full_name }}</h3>
+                                        <div class="timeline-body">{{ feedback.feedback }}</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No interactions recorded.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,246 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 10px;
+    padding: 5px;
+    background-color: rgb(255,255, 255);
+    border-radius: 5px;
+}
+.login_page{
+    background-color: rgb(226, 229, 231);
+    padding: auto;
+    font-family: Arial, Helvetica, sans-serif;
+    border-radius: 50px;
+    margin: 50px;
+}
+section {
+    background-color: #f5f7f3;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 0px;
+}
+header {
+    background: rgb(229, 234, 228);
+    color: #fff;
+    padding: 20px;
+    border-radius: 20px;
+    text-align: right;
+
+    }
+header nav ul {
+    list-style: none;
+    margin: 0px;
+    padding: 5;
+    text-align: right;
+    font-size: 20px;
+}
+header nav ul li {
+    display: inline;
+    margin-right: 10px;
+
+}
+
+main {
+    padding: 20px;
+}
+
+.row {
+ display: grid;
+ grid-template-columns:repeat(4,1FR);
+ gap: 50px;
+ background-color: rgb(213, 217, 217);
+ border-radius: 50px;
+}
+
+.column {
+    flex: 1;
+    padding: 10px;
+    box-sizing: border-box;
+    margin: 5px;
+    border-radius: 60px;
+}
+.img{
+    width: 100%;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50px;
+    margin: 5px;
+    
+}
+.store{
+    text-align: center;
+}
+.box input{
+    background-color: none;
+    display: block;
+    margin: 20px auto;
+    text-align: center;
+    border-radius: 200px;
+    border: 3px solid #0399fd;
+    padding: 14px 10px;
+    color: red;
+    border-radius: 24px;
+}
+.box {
+    width: 500px;
+    background-color:white;
+    margin: 50px auto;
+    text-align: center;
+    border: 3px solid #035023;
+    padding: 20px;
+    color: rgb(23, 7, 64);
+    border-radius: 55em;
+}
+.auth-container {
+    width: 600px;
+    background-color:white;
+    margin: 5px auto;
+    text-align: center;
+    border: 3px solid #035023;
+    padding: 20px;
+    color: rgb(23, 7, 64);
+    border-radius: 34px;
+}
+.container {
+    display: grid;
+    gap: 20px;
+    text-align: center;
+
+}
+.add{
+    text-align: center;
+    background-color: #e4e9e6;
+    width: 100%;
+    height: 100%;
+}
+
+.columnn {
+    
+    min-width: 300px;
+    box-sizing: border-box;
+    padding: 5px;
+    border: 2px solid hsl(70, 88%, 54%);
+}
+
+.store-actions {
+    margin-top: 20px; /* Space between store details and actions */
+}
+
+.btn {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 5px;
+    display: inline-block;
+    margin-right: 10px; /* Space between buttons */
+}
+
+.btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+form button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #c82333; /* Darker red on hover */
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+}
+.product-details {
+    padding: 20px;
+}
+    .product-info {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px; /* Adjust spacing between image and description */
+    }
+
+    .product-photo img {
+        max-width: 200px; /* Adjust the width of the image as needed */
+        height: auto;
+        display: block;
+        padding: 4px;
+        border-radius: 5px;
+    }
+
+    .product-description {
+        flex: 1;
+        margin-top: 20px; /* Allows the description to take the remaining space */
+    }
+    .home{
+     text-align: left;
+     margin-top: 10px; 
+     margin: 10px;  
+    }
+.product-table {
+    width: 100%;
+    border-collapse: collapse; /* Ensures table borders are collapsed */
+    margin-bottom: 20px; /* Space between table and other content */
+}
+
+.product-table th,
+.product-table td {
+    border: 1px solid #ddd;
+    padding: 8px; /* Adds padding inside table cells */
+    text-align: left; /* Aligns text to the left */
+}
+
+.product-table th {
+    background-color: #f2f2f2; /* Light gray background for headers */
+}
+
+.product-photo {
+    margin-bottom: 20px; /* Space between image and description */
+}
+
+.product-photo img {
+    max-width: 100%; /* Ensures the image doesn't exceed the container's width */
+    height: auto; /* Maintains aspect ratio */
+}
+.product-description h3 {
+    margin: 0;
+}
+.product-description p {
+    margin-top: 10px;
+}
+.employee-details {
+    padding: 20px;
+}
+.employee-table {
+    width: 100%;
+    border-collapse: collapse; /* Ensures table borders are collapsed */
+    margin-bottom: 20px; /* Space between table and other content */
+}
+.employee-table th,
+.employee-table td {
+    border: 1px solid #ddd;
+    padding: 8px; /* Adds padding inside table cells */
+    text-align: left; /* Aligns text to the left */
+}
+.employee-table th {
+    background-color: #f2f2f2; /* Light gray background for headers */
+}
+.employee-photo {
+    margin-top: 20px; /* Space between image and table */
+}
+.employee-photo img {
+    width: 100%; /* Ensures the image doesn't exceed the container's width */
+    height: 600px;
+    border-radius: 50px;
+    /* Maintains aspect ratio */
+}
+
+

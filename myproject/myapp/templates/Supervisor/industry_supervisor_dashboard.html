@@ -1,0 +1,99 @@
+{% extends "supervisor/base.html" %}
+{% block title %}Industry Supervisor Dashboard{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">
+                        Welcome, <span class="text-primary">{{ user.get_full_name|default:user.username }}</span>
+                    </h1>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main Content -->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-md-4">
+                    <!-- Assigned Students Section -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Your Assigned Students</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Manage and monitor your assigned students.</p>
+                            <a href="{% url 'monitor_performance' %}" class="btn btn-primary">
+                                <i class="fas fa-users"></i> Manage Assignments
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Task Management Section -->
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Manage Tasks</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Assign and track tasks for your students.</p>
+                            <a href="{% url 'manage_tasks' %}" class="btn btn-success">
+                                <i class="fas fa-tasks"></i> Assign Tasks
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Column -->
+                <div class="col-md-4">
+                    <!-- Performance Monitoring Section -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Monitor Student Performance</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Monitor and evaluate student performance.</p>
+                            <a href="{% url 'monitor_performance' %}" class="btn btn-info">
+                                <i class="fas fa-chart-line"></i> Monitor
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Section -->
+                    <div class="card card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">Provide Feedback & Evaluation</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Provide feedback and evaluations for your students.</p>
+                            <a href="{% url 'monitor_performance' %}" class="btn btn-warning">
+                                <i class="fas fa-comment"></i> Evaluate
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-md-4">
+                    <!-- Communication Section -->
+                    <div class="card card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">Communicate with Students & Advisors</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Send messages to students and university advisors.</p>
+                            <a href="{% url 'supervisor_communication' %}" class="btn btn-danger">
+                                <i class="fas fa-envelope"></i> Send Message
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </section>
+</div>
+{% endblock %}

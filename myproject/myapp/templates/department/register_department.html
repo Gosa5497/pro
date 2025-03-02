@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Register New Department</h2>
+    
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">  <!-- Add enctype if file uploads are involved -->
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {{ form.errors }}
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-primary">Register Department</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+<!-- templates/role_selection.html -->
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Select User Role</h6>
+        </div>
+        <div class="card-body">
+            <form id="roleForm" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="role">Select Role</label>
+                    <select name="role" id="role" class="form-control">
+                        <option value="department_head">Department Head</option>
+                        <option value="advisor">Advisor</option>
+                        <option value="student">Student</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="company_admin">Company Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Next</button>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('roleForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        // Get the selected role
+        var role = document.getElementById('role').value;
+
+        // Define the URLs for each role
+        var urlMapping = {
+            'department_head': "{% url 'department_head_create' %}",
+            'advisor': "{% url 'add_advisor' %}",
+            'student': "{% url 'student_register' %}",
+            'supervisor': "{% url 'supervisor_register' %}",
+            'company_admin': "{% url 'company_admin_create' %}"
+        };
+
+        // Redirect to the appropriate URL based on the selected role
+        window.location.href = urlMapping[role];
+    });
+</script>
+{% endblock %}

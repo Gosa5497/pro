@@ -1,0 +1,91 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Student Management</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Student Management</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">List of Students</h3>
+                            <div class="card-tools">
+                                <a href="{% url 'add_student' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add New Student
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Name</th>
+                                        <th>Major</th>
+                                        <th>Year</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in students %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ student.user.get_full_name }}</td>
+                                        <td>{{ student.major }}</td>
+                                        <td>{{ student.year }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ student.status|lower }}">{{ student.status }}</span>
+                                        </td>
+                                        <td>
+                                            {% if student.user.id %}
+                                                <a href="{% url 'view_student' student.user.id %}" class="btn btn-info btn-sm">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                <a href="{% url 'edit_student' student.user.id %}" class="btn btn-warning btn-sm">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <a href="{% url 'delete_student' student.user.id %}" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </a>
+                                                <a href="{% url 'view_student_progress' student.user.id %}" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-chart-line"></i> View Progress
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Invalid Student ID</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No students found.</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
