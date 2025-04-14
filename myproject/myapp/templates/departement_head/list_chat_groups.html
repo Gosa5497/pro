@@ -1,36 +1,14 @@
-{% extends 'departement_head/base.html' %}
-{% block title %}Chat Groups{% endblock %}
+{% extends base_template %}
 {% block content %}
-<div class="content-wrapper">
-    <section class="content-header">
-        <h1>Chat Groups</h1>
-    </section>
-    <section class="content">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">Select a Chat Group</h3>
-                        </div>
-                        <div class="card-body">
-                            {% if chat_groups %}
-                                <div class="list-group">
-                                    {% for group in chat_groups %}
-                                        <a href="{% url 'group_chat' group.id %}" class="list-group-item list-group-item-action">
-                                            <strong>{{ group.name }}</strong>
-                                            <small class="text-muted">(Created by {{ group.created_by.username }})</small>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p>No chat groups available.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-</div>
+<h1>Chat Groups</h1>
+<ul>
+    {% for group in groups %}
+    <li>
+        <a href="{% url 'group_chat' group.id %}">{{ group.name }}</a>
+        <small>(Created by: {{ group.created_by.username }})</small>
+    </li>
+    {% empty %}
+    <li>No groups available.</li>
+    {% endfor %}
+</ul>
 {% endblock %}

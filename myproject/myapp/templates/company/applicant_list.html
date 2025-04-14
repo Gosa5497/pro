@@ -28,6 +28,7 @@
                                             <th>Name</th>
                                             <th>Email</th>
                                             <th>Application ID</th>
+                                            <th>Status</th>
                                             {% if request.user.is_company_admin %}
                                                 <th>Actions</th>  <!-- Actions column for company admin -->
                                             {% endif %}
@@ -39,22 +40,37 @@
                                                 <td>{{ applicant.name }}</td>
                                                 <td>{{ applicant.email }}</td>
                                                 <td>{{ applicant.id }}</td>
+                                                <td>
+                                                    <span class="badge 
+                                                        {% if applicant.status == 'Approved' %}bg-success
+                                                        {% elif applicant.status == 'Rejected' %}bg-danger
+                                                        {% else %}bg-warning{% endif %}">
+                                                        {{ applicant.status }}
+                                                    </span>
+                                                </td>
                                                 {% if request.user.is_company_admin %}
                                                     <td>
-                                                        <!-- Accept Button -->
-                                                        <form method="post" action="{% url 'accept_application' applicant.id %}" style="display: inline;">
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="btn btn-success btn-sm">
-                                                                <i class="fas fa-check"></i> Accept
-                                                            </button>
-                                                        </form>
-                                                        <!-- Reject Button -->
-                                                        <form method="post" action="{% url 'reject_application' applicant.id %}" style="display: inline;">
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                                <i class="fas fa-times"></i> Reject
-                                                            </button>
-                                                        </form>
+                                                        <!-- Show Accept and Reject buttons only if status is Pending -->
+                                                        {% if applicant.status == 'Pending' %}
+                                                            <!-- Accept Button -->
+                                                            <form method="post" action="{% url 'accept_application' applicant.id %}" style="display: inline;">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="btn btn-success btn-sm">
+                                                                    <i class="fas fa-check"></i> Accept
+                                                                </button>
+                                                            </form>
+                                                            <!-- Reject Button -->
+                                                            <form method="post" action="{% url 'reject_application' applicant.id %}" style="display: inline;">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                                    <i class="fas fa-times"></i> Reject
+                                                                </button>
+                                                            </form>
+                                                        {% elif applicant.status == 'Approved' %}
+                                                            <span class="text-success">Accepted</span>
+                                                        {% elif applicant.status == 'Rejected' %}
+                                                            <span class="text-danger">Rejected</span>
+                                                        {% endif %}
                                                     </td>
                                                 {% endif %}
                                             </tr>

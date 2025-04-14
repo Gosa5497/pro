@@ -72,30 +72,34 @@
                                 <i class="fas fa-toggle-{% if company.is_accepting_applications %}on{% else %}off{% endif %}"></i>
                                 {% if company.is_accepting_applications %}Close Applications{% else %}Open Applications{% endif %}
                             </a>
+                            <!-- New Button: Assign Supervisor to Students -->
+                            <a href="{% url 'assign_supervisor_to_students' %}" class="btn btn-success">
+                                <i class="fas fa-user-tie"></i> Assign Supervisor to Students
+                            </a>
                         </div>
                     </div>
                 </div>
             </div><!-- /.row -->
 
             <!-- Internship Postings Section -->
-           <!-- Internship Postings Section -->
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card card-secondary">
-            <div class="card-header">
-                <h3 class="card-title">Internship Postings</h3>
-            </div>
-            <div class="card-body">
-                <a href="{% url 'post_internship' %}" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Post New Internship
-                </a>
-                <a href="{% url 'view_internships' %}" class="btn btn-info">
-                    <i class="fas fa-list"></i> View Internships
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-secondary">
+                        <div class="card-header">
+                            <h3 class="card-title">Internship Postings</h3>
+                        </div>
+                        <div class="card-body">
+                            <a href="{% url 'post_internship' %}" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Post New Internship
+                            </a>
+                            <a href="{% url 'view_internships' %}" class="btn btn-info">
+                                <i class="fas fa-list"></i> View Internships
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
             <!-- Supervisors Section -->
             <div class="row mt-4">
                 <div class="col-md-12">
@@ -107,7 +111,7 @@
                             <a href="{% url 'supervisor_register' %}" class="btn btn-danger">
                                 <i class="fas fa-user-plus"></i> Add Supervisor
                             </a>
-                            <a href="{% url 'supervisor_communication' %}" class="btn btn-warning">
+                            <a href="{% url 'supervisor_list' %}" class="btn btn-warning">
                                 <i class="fas fa-users"></i> View Supervisors
                             </a>
                         </div>
@@ -123,7 +127,7 @@
                             <h3 class="card-title">Company Profile</h3>
                         </div>
                         <div class="card-body">
-                            <a href="{% url 'home' %}" class="btn btn-purple">
+                            <a href="{% url 'edit_company' company.id %}" class="btn btn-purple">
                                 <i class="fas fa-edit"></i> Edit Profile
                             </a>
                         </div>
@@ -139,7 +143,7 @@
                             <h3 class="card-title">Reports</h3>
                         </div>
                         <div class="card-body">
-                            <a href="{% url 'home' %}" class="btn btn-info">
+                            <a href="{% url 'generate_reports' %}" class="btn btn-info">
                                 <i class="fas fa-file-pdf"></i> Generate Reports
                             </a>
                             <a href="{% url 'home' %}" class="btn btn-secondary">

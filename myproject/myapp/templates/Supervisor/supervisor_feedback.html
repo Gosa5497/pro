@@ -1,0 +1,46 @@
+{% extends "supervisor/base.html" %}
+{% block title %}Supervisor Weekly Feedback{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <h1 class="text-center">Supervisor Weekly Feedback Dashboard</h1>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <h2>Week Starting: {{ week_start_date|date:"F j, Y" }}</h2>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Work Performed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                        <tr>
+                            <td>{{ task.work_date }}</td>
+                            <td>{{ task.description }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center">No tasks found for this week.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if tasks %}
+                <h3>Provide Weekly Feedback</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <textarea name="feedback" placeholder="Enter your feedback"></textarea>
+                    <button type="submit">Submit Feedback</button>
+                </form>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

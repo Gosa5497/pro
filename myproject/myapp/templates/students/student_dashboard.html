@@ -1,143 +1,228 @@
 {% extends 'students/base.html' %}
-{% block title %}Student Dashboard{% endblock %}
+{% block title %}Student Dashboard - {{ user.get_full_name|default:user.username }}{% endblock %}
+
 {% block content %}
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <section class="content-header">
+    <!-- Main Header -->
+    <header class="content-header">
         <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-12">
-                    <h1 class="text-center mb-4">
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h1 class="display-4 mb-3">
                         Welcome, <span class="text-primary">{{ user.get_full_name|default:user.username }}</span>
                     </h1>
-                    <p class="text-center"><h1>Your internship applications, progress, and feedback will appear here.</h1></p>
+                    <p class="lead text-muted">
+                        Your internship management hub - applications, progress, and feedback
+                    </p>
                 </div>
             </div>
-        </div><!-- /.container-fluid -->
-    </section>
+        </div>
+    </header>
 
-    <!-- Main Content -->
-    <section class="content">
+    <!-- Dashboard Sections -->
+    <main class="content">
         <div class="container-fluid">
-            <div class="row">
-                <!-- Left Column -->
-                <div class="col-md-4">
-                    <!-- Profile Section -->
-                    <div class="card card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">Your Profile</h3>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                <!-- Internship Applications -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-success text-white">
+                            <h2 class="h5 mb-0"><i class="fas fa-briefcase me-2"></i>Internship Applications</h2>
                         </div>
-                        <div class="card-body">
-                            <p>Update your personal and academic information.</p>
-                            <a href="{% url 'profile' %}" class="btn btn-primary">
-                                <i class="fas fa-user-edit"></i> Edit Profile
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Internship Applications Section -->
-                    <!-- Internship Applications Section -->
-                    <div class="card card-success">
-                        <div class="card-header">
-                            <h3 class="card-title">Your Internship Applications</h3>
-                        </div>
-                        <div class="card-body">
-                            <p>check list of exist internship for apply</p>
-                            <a href="{% url 'existing_internships' %}" class="btn btn-info mt-2">
-                                <i class="fas fa-list"></i> View Existing Internships
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Middle Column -->
-                <div class="col-md-4">
-                    <!-- Progress Section -->
-                    <div class="card card-info">
-                        <div class="card-header">
-                            <h3 class="card-title">Log Your Daily/Weekly Reports</h3>
-                        </div>
-                        <div class="card-body">
-                            <p>Submit your daily or weekly progress reports.</p>
-                            <a href="{% url 'generate_logbook_form' %}" class="btn btn-info">
-                                <i class="fas fa-clipboard-list"></i> Submit Report
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Feedback Section -->
-                    <div class="card card-warning">
-                        <div class="card-header">
-                            <h3 class="card-title">Feedback</h3>
-                        </div>
-                        <div class="card-body">
-                            <p>View feedback from industry supervisors and university advisors.</p>
-                            <a href="{% url 'feedback' %}" class="btn btn-warning">
-                                <i class="fas fa-comments"></i> View Feedback
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="col-md-4">
-                    <!-- Request Support Section -->
-                    <div class="card card-danger">
-                        <div class="card-header">
-                            <h3 class="card-title">Request Support</h3>
-                        </div>
-                        <div class="card-body">
-                            <p>Request assistance from your advisor or supervisor.</p>
-                            <a href="{% url 'request_support' %}" class="btn btn-danger">
-                                <i class="fas fa-life-ring"></i> Request Assistance
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Final Report Section -->
-                    <div class="card card-secondary">
-                        <div class="card-header">
-                            <h3 class="card-title">Submit Final Internship Report</h3>
-                        </div>
-                        <div class="card-body">
-                            <p>Submit your final internship report for evaluation.</p>
-                            <a href="{% url 'final_report' %}" class="btn btn-secondary">
-                                <i class="fas fa-file-alt"></i> Submit Final Report
-                            </a>
-                        </div>
-                    </div>
-
-                  <!-- Add this card to the right column -->
-                                <!-- Add this card to the right column -->
-                <div class="card card-purple">
-                    <div class="card-header">
-                        <h3 class="card-title">Chat Groups</h3>
-                    </div>
-                    <div class="card-body">
-                        <p>View and join chat groups you are a member of.</p>
-                        <a href="{% url 'list_chat_groups' %}" class="btn btn-purple">
-                            <i class="fas fa-comments"></i> View Chat Groups
-                        </a>
-                    </div>
-                </div>
+                        <div class="card-body d-flex flex-column">
+                            <p class="card-text">Explore and manage your internship applications</p>
+                            <div class="mt-auto">
+                                <a href="{% url 'existing_internships' %}" class="btn btn-success">
+                                    <i class="fas fa-search me-2"></i>Browse Internships
+                                </a>
                             </div>
-                        </div><!-- /.row -->
-                    </div><!-- /.container-fluid -->
-                </section>
-            </div>
+                        </div>
+                    </div>
+                </div>
 
-<!-- Custom CSS for the purple button -->
+                <!-- Progress Reporting -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-info text-white">
+                            <h2 class="h5 mb-0"><i class="fas fa-clipboard-list me-2"></i>Progress Reporting</h2>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            {% if approved_application %}
+                            <p class="card-text">Submit your daily/weekly progress reports</p>
+                            <a href="{% url 'submit_daily_task' %}" class="btn btn-info mt-auto">
+                                <i class="fas fa-plus-circle me-2"></i> New Reports
+                            </a>
+                            {% else %}
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Approved internship required for reporting
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workday Status -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-purple text-white">
+                            <h2 class="h5 mb-0"><i class="fas fa-calendar-alt me-2"></i>Workday Status</h2>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            {% if schedule %}
+                                <p class="card-text"><strong>Workdays per week:</strong> {{ schedule.workdays_per_week }}</p>
+                                <div class="calendar mb-3">
+                                    {% for date in schedule.get_work_dates %}
+                                        <div class="day {% if date == today %}today{% endif %}">
+                                            {{ date|date:"D M j" }}
+                                            {% if date in submitted_dates %}✓{% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <a href="{% url 'student_reported_tasks' %}" class="btn btn-purple mt-auto">
+                                    <i class="fas fa-plus-circle me-2"></i>Submit Daily Task
+                                </a>
+                            {% else %}
+                                <div class="alert alert-warning mb-0">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    No work schedule assigned. Contact your supervisor.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Feedback -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-warning text-dark">
+                            <h2 class="h5 mb-0"><i class="fas fa-comment-dots me-2"></i>Task Feedback</h2>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p class="card-text">Review supervisor feedback on your tasks</p>
+                            <a href="{% url 'view_submitted_tasks' %}" class="btn btn-warning position-relative mt-auto">
+                                <i class="fas fa-inbox me-2"></i>View Feedback
+                                {% if feedback_count %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ feedback_count }}
+                                    <span class="visually-hidden">unread feedback</span>
+                                </span>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Requests -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-danger text-white">
+                            <h2 class="h5 mb-0"><i class="fas fa-life-ring me-2"></i>Support Requests</h2>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p class="card-text">Get assistance from advisors/supervisors</p>
+                            <a href="{% url 'request_support' %}" class="btn btn-danger mt-auto">
+                                <i class="fas fa-plus me-2"></i>New Request
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Reporting -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h2 class="h5 mb-0"><i class="fas fa-file-contract me-2"></i>Final Reporting</h2>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p class="card-text">Submit your final internship documentation</p>
+                            <a href="{% url 'final_report' %}" class="btn btn-secondary mt-auto">
+                                <i class="fas fa-upload me-2"></i>Submit Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Communication Hub -->
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-purple text-white">
+                            <h2 class="h5 mb-0"><i class="fas fa-comments me-2"></i>Communication</h2>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p class="card-text">Access collaboration spaces and chat groups</p>
+                            <a href="{% url 'list_chat_groups' %}" class="btn btn-purple mt-auto">
+                                <i class="fas fa-users me-2"></i>View Groups
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Add this card to the dashboard template -->
+<div class="col">
+    <div class="card shadow-sm h-100">
+        <div class="card-header bg-success text-white">
+            <h2 class="h5 mb-0"><i class="fas fa-comments me-2"></i>Create Chat Group</h2>
+        </div>
+        <div class="card-body d-flex flex-column">
+            {% if has_chat_group_permission %}
+                <p class="card-text">Create a new chat group for collaboration</p>
+                <a href="{% url 'create_student_group' %}" class="btn btn-success mt-auto">
+                    <i class="fas fa-plus-circle me-2"></i>Create Group
+                </a>
+            {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    You do not have permission to create chat groups.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+            </div> <!-- /.row -->
+        </div> <!-- /.container-fluid -->
+    </main>
+</div>
+
 <style>
-.btn-purple {
+/* Custom Purple Theme */
+.bg-purple { background-color: #6f42c1; }
+.btn-purple { 
     background-color: #6f42c1;
     border-color: #6f42c1;
     color: white;
 }
-
 .btn-purple:hover {
     background-color: #5a3a9e;
-    border-color: #5a3a9e;
-    color: white;
+    border-color: #4a2d7d;
+}
+
+/* Card Hover Effects */
+.card { transition: transform 0.2s, box-shadow 0.2s; }
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Consistent Card Heights */
+.card-body { min-height: 150px; }
+
+/* Calendar Styling */
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+}
+.day {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+.day.today {
+    background-color: #e9ecef;
+    font-weight: bold;
 }
 </style>
 {% endblock %}

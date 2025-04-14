@@ -1,5 +1,6 @@
-{% extends 'departement_head/base.html' %}
+{% extends base_template %}
 {% load static %}
+
 {% block title %}Profile - {{ user.get_full_name }}{% endblock %}
 
 {% block content %}
@@ -22,7 +23,6 @@
     <section class="content">
         <div class="container-fluid">
             <div class="row">
-                <!-- Left Column: Profile Image and Basic Info -->
                 <div class="col-md-4">
                     <div class="card card-primary">
                         <div class="card-body box-profile">
@@ -44,16 +44,12 @@
                                     <b>Phone</b>
                                     <a class="float-right">{{ user.phone }}</a>
                                 </li>
-                                <li class="list-group-item">
-                                    <b>Department</b>
-                                    <a class="float-right">{{ user.departmenthead.department.name }}</a>
-                                </li>
+                        
                             </ul>
                         </div>
                     </div>
                 </div>
-
-                <!-- Right Column: Additional Details -->
+                
                 <div class="col-md-8">
                     <div class="card">
                         <div class="card-header">

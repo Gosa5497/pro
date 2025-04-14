@@ -28,22 +28,26 @@
                         </div>
                         <div class="card-body">
                             <p>Manage and monitor your assigned students.</p>
-                            <a href="{% url 'monitor_performance' %}" class="btn btn-primary">
-                                <i class="fas fa-users"></i> Manage Assignments
+                            <a href="{% url 'assigned_students' %}" class="btn btn-primary">
+                                <i class="fas fa-users"></i> View Assigned Students
                             </a>
                         </div>
                     </div>
 
-                    <!-- Task Management Section -->
-                    <div class="card card-success">
+                    <!-- Assign Workdays Section -->
+                    <div class="card card-secondary">
                         <div class="card-header">
-                            <h3 class="card-title">Manage Tasks</h3>
+                            <h3 class="card-title">Assign Workdays</h3>
                         </div>
                         <div class="card-body">
-                            <p>Assign and track tasks for your students.</p>
-                            <a href="{% url 'manage_tasks' %}" class="btn btn-success">
-                                <i class="fas fa-tasks"></i> Assign Tasks
-                            </a>
+                            <p>Assign the number of workdays per week for your students.</p>
+                            <form method="post" action="{% url 'assign_workdays' %}">
+                                {% csrf_token %}
+                                {{ work_schedule_form.as_p }}
+                                <button type="submit" class="btn btn-secondary">
+                                    <i class="fas fa-calendar-alt"></i> Assign Workdays
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -57,38 +61,56 @@
                         </div>
                         <div class="card-body">
                             <p>Monitor and evaluate student performance.</p>
-                            <a href="{% url 'monitor_performance' %}" class="btn btn-info">
+                            <a href="{% url 'supervisor_feedback' %}" class="btn btn-info">
                                 <i class="fas fa-chart-line"></i> Monitor
                             </a>
                         </div>
                     </div>
 
-                    <!-- Feedback Section -->
+                    <!-- Weekly Feedback Section -->
                     <div class="card card-warning">
                         <div class="card-header">
-                            <h3 class="card-title">Provide Feedback & Evaluation</h3>
+                            <h3 class="card-title">Provide Weekly Feedback</h3>
                         </div>
                         <div class="card-body">
-                            <p>Provide feedback and evaluations for your students.</p>
-                            <a href="{% url 'monitor_performance' %}" class="btn btn-warning">
-                                <i class="fas fa-comment"></i> Evaluate
-                            </a>
+                            <p>Provide feedback on student tasks.</p>
+                            <div class="feedback-section">
+                                {% for task in pending_feedback %}
+                                    <div class="task-card mb-3">
+                                        <h4>{{ task.work_date }}</h4>
+                                        <p>{{ task.description }}</p>
+                                        <form method="post" action="{% url 'provide_feedback' task.id %}">
+                                            {% csrf_token %}
+                                            <textarea name="feedback" placeholder="Enter your feedback here..." class="form-control mb-2"></textarea>
+                                            <button type="submit" class="btn btn-warning">Submit Feedback</button>
+                                        </form>
+                                    </div>
+                                {% empty %}
+                                    <p>No pending feedback available.</p>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Right Column -->
                 <div class="col-md-4">
-                    <!-- Communication Section -->
                     <div class="card card-danger">
                         <div class="card-header">
-                            <h3 class="card-title">Communicate with Students & Advisors</h3>
+                            <h3 class="card-title">Communication</h3>
                         </div>
                         <div class="card-body">
-                            <p>Send messages to students and university advisors.</p>
-                            <a href="{% url 'supervisor_communication' %}" class="btn btn-danger">
-                                <i class="fas fa-envelope"></i> Send Message
-                            </a>
+                            <div class="d-flex flex-column">
+                                <a href="{% url 'list_chat_groups' %}" class="btn btn-danger mb-2">
+                                    <i class="fas fa-comments"></i> Group Chats
+                                </a>
+                                <a href="{% url 'private_chat_list' 'department_heads' %}" class="btn btn-success mb-2">
+                                    <i class="fas fa-user-tie"></i> Department Heads
+                                </a>
+                                <a href="{% url 'private_chat_list' 'advisors' %}" class="btn btn-success">
+                                    <i class="fas fa-chalkboard-teacher"></i> University Advisors
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

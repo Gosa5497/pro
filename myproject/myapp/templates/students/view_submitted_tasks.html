@@ -1,0 +1,111 @@
+{% extends 'students/base.html' %}
+{% block content %}
+<div class="content-wrapper">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title">Weekly Task Reports</h3>
+                        <div class="card-tools">
+                            <span class="badge bg-light text-dark">
+                                Workdays per week: {{ workdays_per_week }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover text-center">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Week</th>
+                                        <th>Day</th>
+                                        <th>Date</th>
+                                        <th>Work Performed</th>
+                                        <th>Supervisor Feedback</th>
+                                        <th>Advisor Feedback</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for week in grouped_tasks %}
+                                        <tr>
+                                            <td rowspan="{{ week.tasks|length }}" class="align-middle">
+                                                Week {{ week.week_number }}<br>
+                                            </td>
+                                            {% for task in week.tasks %}
+                                                {% if not forloop.first %}<tr>{% endif %}
+                                                <td>{{ task.work_date|date:"l" }}</td>
+                                                <td>{{ task.work_date|date:"Y-m-d" }}</td>
+                                                <td>{{ task.description|default:"—" }}</td>
+                                                
+                                                {% if forloop.first %}
+                                                    <td rowspan="{{ week.tasks|length }}" class="align-middle">
+                                                        {% if task.supervisor_feedback %}
+                                                            {{ task.supervisor_feedback }}
+                                                        {% else %}
+                                                            <span class="text-muted">—</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td rowspan="{{ week.tasks|length }}" class="align-middle">
+                                                        {% if task.advisor_feedback %}
+                                                            {{ task.advisor_feedback }}
+                                                        {% else %}
+                                                            <span class="text-muted">—</span>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endif %}
+                                                {% if not forloop.first %}</tr>{% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-muted">No tasks submitted yet.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        color: #212529;
+        border-collapse: collapse;
+    }
+    .table-bordered {
+        border: 1px solid #dee2e6;
+    }
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #dee2e6;
+        padding: 0.75rem;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    .thead-light th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .align-middle {
+        vertical-align: middle;
+    }
+    .card-title {
+        margin-bottom: 0;
+    }
+    small.text-muted {
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}

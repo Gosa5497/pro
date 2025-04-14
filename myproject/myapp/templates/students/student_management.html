@@ -1,18 +1,22 @@
 {% extends 'departement_head/base.html' %}
 {% load static %}
-{% block title %}Student Management{% endblock %}
+{% block title %}Student Management System{% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
+    <!-- Page Header -->
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Student Management</h1>
+                    <h1 class="mb-3">
+                        <i class="fas fa-user-graduate mr-2"></i>Student Management
+                    </h1>
+                    <p class="lead">Manage student records, track academic progress, and assign advisors</p>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}"><i class="fas fa-home"></i> Home</a></li>
                         <li class="breadcrumb-item active">Student Management</li>
                     </ol>
                 </div>
@@ -20,67 +24,118 @@
         </div>
     </section>
 
+    <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
+                <div class="col-12">
+                    <!-- Student List Card -->
+                    <div class="card card-outline card-primary">
                         <div class="card-header">
-                            <h3 class="card-title">List of Students</h3>
+                            <h3 class="card-title">
+                                <i class="fas fa-list-ol mr-2"></i>Student Directory
+                            </h3>
                             <div class="card-tools">
-                                <a href="{% url 'add_student' %}" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Add New Student
+                                <a href="{% url 'add_student' %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus-circle mr-1"></i>New Student
                                 </a>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <table class="table table-bordered table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Name</th>
-                                        <th>Major</th>
-                                        <th>Year</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for student in students %}
-                                    <tr>
-                                        <td>{{ forloop.counter }}</td>
-                                        <td>{{ student.user.get_full_name }}</td>
-                                        <td>{{ student.major }}</td>
-                                        <td>{{ student.year }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ student.status|lower }}">{{ student.status }}</span>
-                                        </td>
-                                        <td>
-                                            {% if student.user.id %}
-                                                <a href="{% url 'view_student' student.user.id %}" class="btn btn-info btn-sm">
-                                                    <i class="fas fa-eye"></i> View
-                                                </a>
-                                                <a href="{% url 'edit_student' student.user.id %}" class="btn btn-warning btn-sm">
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </a>
-                                                <a href="{% url 'delete_student' student.user.id %}" class="btn btn-danger btn-sm">
-                                                    <i class="fas fa-trash"></i> Delete
-                                                </a>
-                                                <a href="{% url 'view_student_progress' student.user.id %}" class="btn btn-success btn-sm">
-                                                    <i class="fas fa-chart-line"></i> View Progress
-                                                </a>
-                                            {% else %}
-                                                <span class="text-muted">Invalid Student ID</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="6" class="text-center">No students found.</td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
+                        
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped text-nowrap">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th style="width: 5%">#</th>
+                                            <th style="width: 25%">Student Name</th>
+                                            <th style="width: 15%">Major</th>
+                                            <th style="width: 10%">Year</th>
+                                            <th style="width: 15%">Academic Progress</th>
+                                            <th style="width: 15%">Advisor Assignment</th>
+                                            <th style="width: 15%">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if students %}
+                                            {% for student in students %}
+                                            <tr>
+                                                <td>{{ forloop.counter }}</td>
+                                                <td>{{ student.user.get_full_name }}</td>
+                                                <td>{{ student.major }}</td>
+                                                <td>Year {{ student.year }}</td>
+                                                <td>
+                                                    <a href="{% url 'view_student_progress' student.user.id %}" 
+                                                       class="btn btn-sm btn-success"
+                                                       data-toggle="tooltip" 
+                                                       title="View academic progress">
+                                                        <i class="fas fa-chart-bar mr-1"></i>Progress Report
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    {% if student.assigned_advisor %}
+                                                        <span class="badge badge-info">
+                                                            <i class="fas fa-user-tie mr-1"></i>{{ student.assigned_advisor.user.get_full_name }}
+                                                        </span>
+                                                    {% elif student in students_with_approved_applications %}
+                                                        <a href="{% url 'assign_advisor' student.user.id %}" 
+                                                           class="btn btn-sm btn-warning"
+                                                           data-toggle="tooltip"
+                                                           title="Assign academic advisor">
+                                                            <i class="fas fa-handshake mr-1"></i>Assign Advisor
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-muted">Pending Assignment</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="{% url 'view_student' student.user.id %}" 
+                                                           class="btn btn-sm btn-info"
+                                                           data-toggle="tooltip"
+                                                           title="View full profile">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{% url 'edit_student' student.user.id %}" 
+                                                           class="btn btn-sm btn-secondary"
+                                                           data-toggle="tooltip"
+                                                           title="Edit student details">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <a href="{% url 'delete_student' student.user.id %}" 
+                                                           class="btn btn-sm btn-danger"
+                                                           data-toggle="tooltip"
+                                                           title="Remove student record"
+                                                           onclick="return confirm('This will permanently delete the student record. Continue?');">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="7" class="text-center py-5">
+                                                    <div class="empty-state">
+                                                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                                        <h4 class="text-muted">No Student Records Found</h4>
+                                                        <p class="text-muted">Start by adding new students using the button above</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Card Footer -->
+                        <div class="card-footer clearfix">
+                            <div class="float-right">
+                                <span class="text-muted">
+                                    Showing {{ students|length }} of {{ total_students }} records
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -88,4 +143,42 @@
         </div>
     </section>
 </div>
+
+<!-- Page Help Modal -->
+<div class="modal fade" id="pageHelp" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-question-circle mr-2"></i>Student Management Guide</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h6>Key Features:</h6>
+                <ul>
+                    <li>Add new students to the system</li>
+                    <li>Track academic progress and performance</li>
+                    <li>Assign academic advisors to students</li>
+                    <li>Manage student records and profiles</li>
+                </ul>
+                <p class="text-muted small">Use the action buttons to perform specific operations on student records</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(function () {
+    // Enable tooltips
+    $('[data-toggle="tooltip"]').tooltip()
+    
+    // Auto-refresh every 5 minutes
+    setInterval(function(){
+        window.location.reload();
+    }, 300000);
+});
+</script>
 {% endblock %}

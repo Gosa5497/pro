@@ -1,0 +1,21 @@
+{% extends "advisors/base.html" %}
+
+{% block content %}
+  <div class="container">
+    <h2>Edit Feedback for {{ student.full_name }}</h2>
+    <p>Feedback for task: {{ feedback.title }}</p>
+
+    <form method="POST">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label for="advisor_feedback">Feedback Comments</label>
+        <textarea class="form-control" id="advisor_feedback" name="advisor_feedback" rows="5">{{ form.advisor_feedback.value }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Save Feedback</button>
+    </form>
+
+    <br>
+    <a href="{% url 'student_daily_work_report' student.pk %}" class="btn btn-secondary">Back</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!-- supervisors/confirm_task.html -->
+{% extends 'supervisors/base.html' %}
+{% block title %}Confirm Task{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">Confirm Task</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6 offset-md-3">
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Task: {{ task.description }}</h3>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Student Input:</strong> {{ task.student_input }}</p>
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    {{ form.supervisor_feedback }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.is_confirmed }} Confirm Task
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check"></i> Confirm Task
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

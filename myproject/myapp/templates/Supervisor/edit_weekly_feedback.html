@@ -1,0 +1,10 @@
+{% extends 'Supervisor/base.html' %}
+{% block content %}
+<h2>Edit Weekly Feedback - Week {{ week_number }}</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+<a href="{% url 'student_reported_tasks' student_id=student.pk %}">Back</a>
+{% endblock %}

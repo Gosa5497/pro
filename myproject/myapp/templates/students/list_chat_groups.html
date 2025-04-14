@@ -1,0 +1,17 @@
+<!-- list_chat_groups.html -->
+{% extends 'students/base.html' %}
+
+{% block content %}
+  <h2>Chat Groups</h2>
+  <ul>
+    {% for group in chat_groups %}
+      <li>
+        <a href="{% url 'group_chat' group.id %}">{{ group.name }}</a>
+        <span>(Created on {{ group.created_at }})</span>
+      </li>
+    {% empty %}
+      <li>No chat groups found.</li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'create_student_chat_group' %}" class="btn btn-primary">Create New Group</a>
+{% endblock %}

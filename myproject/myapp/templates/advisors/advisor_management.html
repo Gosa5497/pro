@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="content-wrapper">
+    <!-- Page Header Section -->
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
@@ -11,6 +12,7 @@
                     <h1>Advisor Management</h1>
                 </div>
                 <div class="col-sm-6">
+                    <!-- Add New Advisor Button -->
                     <a href="{% url 'add_advisor' %}" class="btn btn-success float-right">
                         <i class="fas fa-plus"></i> Add New Advisor
                     </a>
@@ -19,10 +21,12 @@
         </div>
     </section>
 
+    <!-- Main Content Section -->
     <section class="content">
         <div class="container-fluid">
             <div class="card">
                 <div class="card-body">
+                    <!-- Advisor List Table -->
                     <table class="table table-bordered table-hover">
                         <thead class="thead-dark">
                             <tr>
@@ -39,14 +43,25 @@
                                 <td>{{ advisor.user.get_full_name }}</td>
                                 <td>{{ advisor.user.email }}</td>
                                 <td>{{ advisor.department.name }}</td>
-                                <td>{{ advisor.assigned_students.count }}</td>
                                 <td>
+                                    <a href="{% url 'advisor_assigned_students' user.id %}" class="btn btn-warning">
+                                        <i class="fas fa-comment"></i> View Assigned Students
+                                    </a>
+                                    <!-- Assigned Students Link -->
+                                    <a href="{% url 'advisor_assigned_students' advisor.user.id %}" class="btn btn-link">
+                                        {{ advisor.assigned_students.count }} Students
+                                    </a>
+                                </td>
+                                <td>
+                                    <!-- View Button -->
                                     <a href="{% url 'view_advisor_details' advisor.user.id %}" class="btn btn-info btn-sm">
                                         <i class="fas fa-eye"></i> View
                                     </a>
+                                    <!-- Edit Button -->
                                     <a href="{% url 'update_advisor' advisor.user.id %}" class="btn btn-primary btn-sm">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
+                                    <!-- Delete Button -->
                                     <button class="btn btn-danger btn-sm" data-toggle="modal" 
                                             data-target="#deleteModal{{ advisor.user.id }}">
                                         <i class="fas fa-trash"></i> Delete
@@ -54,7 +69,7 @@
                                 </td>
                             </tr>
                             
-                            <!-- Delete Modal -->
+                            <!-- Delete Confirmation Modal -->
                             <div class="modal fade" id="deleteModal{{ advisor.user.id }}" tabindex="-1">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
@@ -78,6 +93,7 @@
                                 </div>
                             </div>
                             {% empty %}
+                            <!-- No Advisors Found Message -->
                             <tr>
                                 <td colspan="5" class="text-center">No advisors found</td>
                             </tr>

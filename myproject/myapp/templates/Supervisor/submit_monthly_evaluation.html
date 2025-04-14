@@ -1,0 +1,202 @@
+{% extends 'supervisor/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">{{ month_name }} Evaluation</h2>
+            <h4>{{ student.user.get_full_name }}</h4>
+            <small class="text-light">Internship Month #{{ month_number }}</small>
+        </div>
+
+        <div class="card-body">
+            {% if weekly_reports %}
+            <section class="mb-5">
+                <h4 class="border-bottom pb-2">Weekly Performance Overview</h4>
+                <div class="row g-3">
+                    {% for week in weekly_reports %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-secondary text-white d-flex justify-content-between">
+                                <span>Week {{ forloop.counter }}</span>
+                                <small>{{ week.week_start_date|date:"M j" }} - {{ week.week_end_date|date:"M j" }}</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress mb-2" style="height: 20px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ week.overall_score }}%">
+                                        {{ week.overall_score }}%
+                                    </div>
+                                </div>
+                                <dl class="row small">
+                                    <dt class="col-6">Punctuality</dt>
+                                    <dd class="col-6">{{ week.punctuality }}/5</dd>
+                                    <dt class="col-6">Task Completion</dt>
+                                    <dd class="col-6">{{ week.tasks_completed }}/{{ week.tasks_assigned }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <form method="post" id="evaluationForm">
+                {% csrf_token %}
+                
+                <section class="mb-4">
+                    <h4 class="border-bottom pb-2">Evaluation Progress</h4>
+                    <div class="progress-container mb-3">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span>General: <span id="generalCurrent">0</span>/25</span>
+                            <span>Personal: <span id="personalCurrent">0</span>/25</span>
+                            <span>Professional: <span id="professionalCurrent">0</span>/50</span>
+                            <span class="fw-bold">Total: <span id="totalScore">0</span>/100</span>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-success" id="generalBar"></div>
+                            <div class="progress-bar bg-info" id="personalBar"></div>
+                            <div class="progress-bar bg-warning" id="professionalBar"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="row g-4">
+                    <!-- General Performance -->
+                    <div class="col-md-4">
+                        <label for="punctuality">Punctuality</label>
+                        {{ form.punctuality }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="reliability">Reliability</label>
+                        {{ form.reliability }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="independence">Independence</label>
+                        {{ form.independence }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="communication">Communication</label>
+                        {{ form.communication }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="professionalism">Professionalism</label>
+                        {{ form.professionalism }}
+                    </div>
+
+                    <!-- Personal Performance -->
+                    <div class="col-md-4">
+                        <label for="speed_of_work">Speed of Work</label>
+                        {{ form.speed_of_work }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="accuracy">Accuracy</label>
+                        {{ form.accuracy }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="engagement">Engagement</label>
+                        {{ form.engagement }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="need_for_work">Need for Work</label>
+                        {{ form.need_for_work }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="cooperation">Cooperation</label>
+                        {{ form.cooperation }}
+                    </div>
+
+                    <!-- Professional Performance -->
+                    <div class="col-md-4">
+                        <label for="technical_skills">Technical Skills</label>
+                        {{ form.technical_skills }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="organizational_skills">Organizational Skills</label>
+                        {{ form.organizational_skills }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="project_support">Project Support</label>
+                        {{ form.project_support }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="responsibility">Responsibility</label>
+                        {{ form.responsibility }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="team_quality">Team Quality</label>
+                        {{ form.team_quality }}
+                    </div>
+
+                    <!-- Additional Comments -->
+                    <div class="col-12">
+                        <label for="additional_comments">Additional Comments</label>
+                        {{ form.additional_comments }}
+                    </div>
+                </div>
+
+                {% if form.errors %}
+                <div class="alert alert-danger mt-4">
+                    <h5>Validation Errors:</h5>
+                    <ul class="mb-0">
+                        {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary mt-4">Submit Evaluation</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const categoryMap = {
+            general: { max: 25, fields: ['punctuality', 'reliability', 'independence', 'communication', 'professionalism'] },
+            personal: { max: 25, fields: ['speed_of_work', 'accuracy', 'engagement', 'need_for_work', 'cooperation'] },
+            professional: { max: 50, fields: ['technical_skills', 'organizational_skills', 'project_support', 'responsibility', 'team_quality'] }
+        };
+    
+        function calculateScores() {
+            let totals = { general: 0, personal: 0, professional: 0 };
+            
+            Object.entries(categoryMap).forEach(([category, config]) => {
+                config.fields.forEach(field => {
+                    const input = document.querySelector(`[name="${field}"]`);
+                    totals[category] += Math.min(parseInt(input.value) || 0, input.max);
+                });
+            });
+    
+            // Update displays
+            Object.entries(totals).forEach(([category, total]) => {
+                document.getElementById(`${category}Current`).textContent = total;
+                const percentage = (total / categoryMap[category].max) * 100;
+                document.getElementById(`${category}Bar`).style.width = `${Math.min(percentage, 100)}%`;
+            });
+    
+            const totalScore = Object.values(totals).reduce((a, b) => a + b, 0);
+            document.getElementById('totalScore').textContent = totalScore;
+        }
+    
+        document.querySelectorAll('.score-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const max = parseInt(this.max);
+                this.value = Math.min(Math.max(parseInt(this.value) || 0, 0), max);
+                calculateScores();
+            });
+        });
+    
+        calculateScores(); // Initial calculation
+    });
+</script>
+{% endblock %}

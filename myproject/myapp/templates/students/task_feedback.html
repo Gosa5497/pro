@@ -1,0 +1,58 @@
+{% extends 'students/base.html' %}
+{% block title %}Task Feedback{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1>Task Feedback</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            {% if tasks %}
+            <div class="card">
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Task Description</th>
+                                <th>Deadline</th>
+                                <th>Supervisor Feedback</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td>{{ task.description }}</td>
+                                <td>{{ task.deadline|date:"M d, Y" }}</td>
+                                <td>{{ task.supervisor_feedback }}</td>
+                                <td>
+                                    {% if task.is_confirmed %}
+                                        <span class="badge badge-success">Confirmed</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Pending Review</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <h5><i class="icon fas fa-info"></i> No feedback available yet!</h5>
+                Your tasks haven't been reviewed by your supervisor yet. Check back later.
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -51,8 +51,8 @@
                             <p>
                                 Communicate with advisors in your department.
                             </p>
-                            <a href="{% url 'chat_advisors' %}" class="btn btn-success">
-                                <i class="fas fa-user-tie"></i> Start Chat
+                            <a href="{% url 'private_chat_list' role='advisors' %}" class="btn btn-success">
+                                <i class="fas fa-user-tie"></i> start Chat
                             </a>
                         </div>
                     </div>
@@ -70,8 +70,8 @@
                             <p>
                                 Communicate with supervisors from companies.
                             </p>
-                            <a href="{% url 'chat_supervisors' %}" class="btn btn-warning">
-                                <i class="fas fa-user-shield"></i> Start Chat
+                            <a href="{% url 'private_chat_list' role='supervisor' %}" class="btn btn-success">
+                                <i class="fas fa-user-tie"></i> Start Chat
                             </a>
                         </div>
                     </div>
@@ -87,7 +87,7 @@
                             <p>
                                 Communicate with company administrators.
                             </p>
-                            <a href="{% url 'chat_company_admins' %}" class="btn btn-danger">
+                            <a href="{% url 'private_chat_list' role='company_admins' %}" class="btn btn-danger">
                                 <i class="fas fa-building"></i> Start Chat
                             </a>
                         </div>
@@ -106,8 +106,27 @@
                             <p>
                                 Create a group chat with multiple participants.
                             </p>
-                            <a href="{% url 'create_chat_group' %}" class="btn btn-info">
+                            <a href="{% url 'create_department_group' %}" class="btn btn-info">
                                 <i class="fas fa-users"></i> Create Group
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grant Chat Group Permissions -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-secondary">
+                        <div class="card-header">
+                            <h3 class="card-title">Grant Chat Group Permissions</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>
+                                Grant permission to students to create chat groups for their internships.
+                            </p>
+                            <a href="{% url 'list_internships_for_permission' %}" class="btn btn-secondary">
+                                <i class="fas fa-comments"></i> Grant Permissions
                             </a>
                         </div>
                     </div>

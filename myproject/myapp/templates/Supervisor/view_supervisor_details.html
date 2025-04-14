@@ -1,0 +1,63 @@
+{% extends 'company_admin/base.html' %}
+{% load static %}
+{% block title %}Supervisor Details - {{ supervisor.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Supervisor Details - {{ supervisor.user.get_full_name }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'company_admin_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Supervisor Details</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Personal Information</h4>
+                            <p><strong>Name:</strong> {{ supervisor.user.get_full_name }}</p>
+                            <p><strong>Email:</strong> {{ supervisor.user.email }}</p>
+                            <p><strong>Phone:</strong> {{ supervisor.user.phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Company Information</h4>
+                            <p><strong>Company:</strong> {{ supervisor.company.name }}</p>
+                            <p><strong>Position:</strong> {{ supervisor.position }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h4>Assigned Students</h4>
+                            {% with supervisor.student_set.all as assigned_students %}
+                                {% if assigned_students %}
+                                    <ul>
+                                        {% for student in assigned_students %}
+                                        <li>{{ student.user.get_full_name }} ({{ student.major }})</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>No students assigned to this supervisor.</p>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

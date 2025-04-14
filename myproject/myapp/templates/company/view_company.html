@@ -42,40 +42,106 @@
                 </div>
             </div>
 
-            <!-- Chat Buttons -->
-            <div class="row mb-3">
+            <div class="row">
+                <!-- Internships Offered -->
                 <div class="col-md-6">
-                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Internships Offered</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for internship in internships %}
+                                        <tr>
+                                            <td>{{ internship.title }}</td>
+                                            <td>
+                                                {{ internship.start_date|date:"M d" }} - 
+                                                {{ internship.end_date|date:"M d" }}
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if internship.is_open %}badge-success{% else %}badge-secondary{% endif %}">
+                                                    {% if internship.is_open %}Open{% else %}Closed{% endif %}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No internships posted</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Applications Received -->
                 <div class="col-md-6">
-                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Applications Received</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Internship Title</th>
+                                            <th class="text-center">Acceptances</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for internship in internships %}
+                                        <tr>
+                                            <td>{{ internship.title }}</td>
+                                            <td class="text-center">
+                                                    <a href="{% url 'applicant_list' internship.id %}" 
+                                                       class="btn btn-sm btn-info"
+                                                       title="View Applications">
+                                                        <i class="fas fa-list"></i>
+                                                    </a>
+                                                <span class="badge badge-primary">
+                                                    {{ internship.approved_applications }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="2" class="text-center text-muted">No applications received</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Interaction History -->
+            <!-- Action Buttons -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Department Head Interactions</h3>
+                    <h3 class="card-title">Actions</h3>
                 </div>
-                <div class="card-body">
-                    {% if feedbacks %}
-                        <div class="timeline">
-                            {% for feedback in feedbacks %}
-                                <div class="time-label">
-                                    <span class="bg-blue">{{ feedback.created_at|date:"d M Y" }}</span>
-                                </div>
-                                <div>
-                                    <i class="fas fa-comment bg-green"></i>
-                                    <div class="timeline-item">
-                                        <h3 class="timeline-header">Feedback from {{ feedback.submitted_by.get_full_name }}</h3>
-                                        <div class="timeline-body">{{ feedback.feedback }}</div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p>No interactions recorded.</p>
-                    {% endif %}
+                <div class="card-body text-center">
+                    <a href="{% url 'chat_with_company_admin' company.id %}" 
+                       class="btn btn-primary btn-lg m-2">
+                        <i class="fas fa-comments"></i> Chat with Company Admin
+                    </a>
+                    <a href="{% url 'company_supervisors' company.id %}" 
+                       class="btn btn-secondary btn-lg m-2">
+                        <i class="fas fa-user-tie"></i> View Supervisors
+                    </a>
                 </div>
             </div>
         </div>

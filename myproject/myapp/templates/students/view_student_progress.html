@@ -1,157 +1,290 @@
 {% extends 'departement_head/base.html' %}
 {% load static %}
-{% block title %}Student Progress - {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
+    <!-- Header Section -->
     <section class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1>Student Progress - {{ student.user.get_full_name }}</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'student_management' %}">Student Management</a></li>
-                        <li class="breadcrumb-item active">Student Progress</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
+        <h1>
+            {{ student.user.get_full_name }}'s Progress
+            <small>Department: {{ student.department.name }}</small>
+        </h1>
     </section>
 
+    <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
-            <!-- Export Button -->
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <a href="{% url 'export_student_progress' student.user.id %}" class="btn btn-success">
-                        <i class="fas fa-download"></i> Export Progress Report
-                    </a>
+            <!-- Summary Cards -->
+            <div class="row">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>{{ completed_tasks }}</h3>
+                            <p>Completed Tasks</p>
+                        </div>
+                        <div class="icon"><i class="ion ion-checkmark"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>{{ pending_tasks }}</h3>
+                            <p>Pending Tasks</p>
+                        </div>
+                        <div class="icon"><i class="ion ion-alert"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>{{ average_score|default:"0" }}</h3>
+                            <p>Average Score</p>
+                        </div>
+                        <div class="icon"><i class="ion ion-stats-bars"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>{{ evaluations_count }}</h3>
+                            <p>Monthly Evaluations</p>
+                        </div>
+                        <div class="icon"><i class="ion ion-document-text"></i></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Weekly Tasks Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Performed</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover text-center">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Week</th>
+                                            <th>Day</th>
+                                            <th>Date</th>
+                                            <th>Work Performed</th>
+                                            <th>Supervisor Feedback</th>
+                                            <th>Advisor Feedback</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for week in grouped_tasks %}
+                                            {% for task in week.tasks %}
+                                            <tr>
+                                                {% if forloop.first %}
+                                                <td rowspan="{{ week.tasks|length }}" class="align-middle">
+                                                    Week {{ week.week_number }}<br>
+                                                    <small>{{ week.week_start|date:"M d" }}</small>
+                                                </td>
+                                                {% endif %}
+                                                <td>{{ task.work_date|date:"l" }}</td>
+                                                <td>{{ task.work_date|date:"Y-m-d" }}</td>
+                                                <td>{{ task.description|default:"—" }}</td>
+                                                {% if forloop.first %}
+                                                <td rowspan="{{ week.tasks|length }}" class="align-middle">
+                                                    {% if task.supervisor_feedback %}
+                                                        {{ task.supervisor_feedback }}
+                                                    {% else %}
+                                                        <span class="text-muted">Not provided</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td rowspan="{{ week.tasks|length }}" class="align-middle" style="background-color: #f8f9fa;">
+                                                    {% if task.supervisor_feedback %}
+                                                        {% if task.advisor_feedback %}
+                                                            <div class="d-flex flex-column">
+                                                                <div class="mb-2">{{ task.advisor_feedback }}</div>
+                                                            </div>
+                                                        {% else %}
+                                                        <span class="text-muted">Not provided</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">Awaiting supervisor feedback</span>
+                                                    {% endif %}
+                                                </td>
+                                                {% endif %}
+                                            </tr>
+                                            {% endfor %}
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4">
+                                                    <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
+                                                    <p class="text-muted">No tasks submitted yet</p>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Progress Charts -->
+            <!-- Detailed Evaluations Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">c
+                            <h3 class="card-title">Detailed Monthly Evaluations</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Supervisor</th>
+                                            <th>General (25%)</th>
+                                            <th>Personal (25%)</th>
+                                            <th>Professional (50%)</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for eval in monthly_evaluations %}
+                                        <tr>
+                                            <td>{{ eval.month }}</td>
+                                            <td>{{ eval.supervisor.user.get_full_name }}</td>
+                                            <td>
+                                                <div class="progress progress-xs">
+                                                    {% with general=eval.get_category_progress.general %}
+                                                    <div class="progress-bar bg-primary" 
+                                                         style="width: {% widthratio general.current general.max 100 %}%">
+                                                        <span class="sr-only">{% widthratio general.current general.max 100 %}%</span>
+                                                    </div>
+                                                    {% endwith %}
+                                                </div>
+                                                <small>{{ eval.get_category_progress.general.current }}/25</small>
+                                            </td>
+                                            <td>
+                                                <div class="progress progress-xs">
+                                                    {% with personal=eval.get_category_progress.personal %}
+                                                    <div class="progress-bar bg-info" 
+                                                         style="width: {% widthratio personal.current personal.max 100 %}%">
+                                                        <span class="sr-only">{% widthratio personal.current personal.max 100 %}%</span>
+                                                    </div>
+                                                    {% endwith %}
+                                                </div>
+                                                <small>{{ eval.get_category_progress.personal.current }}/25</small>
+                                            </td>
+                                            <td>
+                                                <div class="progress progress-xs">
+                                                    {% with professional=eval.get_category_progress.professional %}
+                                                    <div class="progress-bar bg-success" 
+                                                         style="width: {% widthratio professional.current professional.max 100 %}%">
+                                                        <span class="sr-only">{% widthratio professional.current professional.max 100 %}%</span>
+                                                    </div>
+                                                    {% endwith %}
+                                                </div>
+                                                <small>{{ eval.get_category_progress.professional.current }}/50</small>
+                                            </td>
+                                            <td>
+                                                <strong>{{ eval.calculate_total_score }}/100</strong>
+                                            </td>
+                                            <td>
+                                                {% if eval.calculate_total_score >= 80 %}
+                                                    <span class="badge bg-success">Excellent</span>
+                                                {% elif eval.calculate_total_score >= 60 %}
+                                                    <span class="badge bg-primary">Good</span>
+                                                {% elif eval.calculate_total_score >= 40 %}
+                                                    <span class="badge bg-warning">Fair</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Poor</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'view_monthly_evaluation' eval.id %}" 
+                                                   class="btn btn-sm btn-primary" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="#" class="btn btn-sm btn-info" title="Download PDF">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4">
+                                                <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted">No evaluations submitted yet</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Card Footer -->
+                        <div class="card-footer clearfix">
+                            <div class="float-right">
+                                <!-- Pagination can go here if needed -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Performance Breakdown Section -->
             <div class="row">
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Task Completion</h3>
+                            <h3 class="card-title">Performance Breakdown</h3>
                         </div>
                         <div class="card-body">
-                            <canvas id="taskChart" style="height: 250px;"></canvas>
+                            <canvas id="performanceRadarChart" height="300"></canvas>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Evaluation Scores</h3>
+                            <h3 class="card-title">Supervisor Comments</h3>
+                            <p class="card-text">Student's potential in profession  and overall.</p>
                         </div>
                         <div class="card-body">
-                            <canvas id="evaluationChart" style="height: 250px;"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Internship Progress -->
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Internship Progress</h3>
-                        </div>
-                        <div class="card-body">
-                            {% if progress_data %}
-                                {% for data in progress_data %}
-                                    <div class="card mb-3">
-                                        <div class="card-header">
-                                            <h4 class="card-title">Internship at {{ data.internship.company.name }}</h4>
-                                        </div>
-                                        <div class="card-body">
-                                            <h5>Tasks</h5>
-                                            <ul>
-                                                {% for task in data.tasks %}
-                                                    <li>
-                                                        <strong>{{ task.description }}</strong>
-                                                        <br>
-                                                        Deadline: {{ task.deadline }}
-                                                        <br>
-                                                        Status: <span class="badge bg-{{ task.status|lower }}">{{ task.status }}</span>
-                                                    </li>
-                                                {% empty %}
-                                                    <li>No tasks found.</li>
-                                                {% endfor %}
-                                            </ul>
-
-                                            <h5>Evaluations</h5>
-                                            <ul>
-                                                {% for evaluation in data.evaluations %}
-                                                    <li>
-                                                        <strong>Date:</strong> {{ evaluation.date }}
-                                                        <br>
-                                                        <strong>Score:</strong> {{ evaluation.score }}
-                                                        <br>
-                                                        <strong>Comments:</strong> {{ evaluation.comments }}
-                                                    </li>
-                                                {% empty %}
-                                                    <li>No evaluations found.</li>
-                                                {% endfor %}
-                                            </ul>
-                                        </div>
+                            <div class="direct-chat-messages" style="height: 300px; overflow-y: auto;">
+                                {% for eval in monthly_evaluations %}
+                                <div class="direct-chat-msg {% cycle 'right' 'left' %}">
+                                    <div class="direct-chat-infos clearfix">
+                                        <span class="direct-chat-name float-{% cycle 'right' 'left' %}">
+                                            {{ eval.supervisor.user.get_full_name }}
+                                        </span>
+                                        <span class="direct-chat-timestamp float-{% cycle 'left' 'right' %}">
+                                            {{ eval.month }}
+                                        </span>
                                     </div>
-                                {% endfor %}
-                            {% else %}
-                                <p>No internship data found for this student.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feedback Section -->
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Feedback</h3>
-                        </div>
-                        <div class="card-body">
-                            {% if student.feedbacks.all %}
-                                <ul class="list-group">
-                                    {% for feedback in student.feedbacks.all %}
-                                        <li class="list-group-item">
-                                            <strong>{{ feedback.submitted_by.get_full_name }}</strong> ({{ feedback.created_at }}):
-                                            <p>{{ feedback.feedback }}</p>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <p>No feedback available.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feedback Form -->
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Provide Feedback</h3>
-                        </div>
-                        <div class="card-body">
-                            <form method="post" action="{% url 'submit_feedback' student.user.id %}">
-                                {% csrf_token %}
-                                <div class="form-group">
-                                    <label for="feedback">Feedback</label>
-                                    <textarea class="form-control" id="feedback" name="feedback" rows="3" required></textarea>
+                                    <div class="direct-chat-text">
+                                        {{ eval.additional_comments|truncatechars:150 }}
+                                        {% if eval.additional_comments|length > 150 %}
+                                        <a href="{% url 'view_monthly_evaluation' eval.id %}">Read more</a>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <button type="submit" class="btn btn-primary">Submit Feedback</button>
-                            </form>
+                                {% empty %}
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-comment-slash fa-2x mb-2"></i>
+                                    <p>No supervisor comments yet</p>
+                                </div>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,50 +293,152 @@
     </section>
 </div>
 
-<!-- Chart.js Script -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js Scripts -->
 <script>
-    $(function () {
-        // Task Completion Chart (Doughnut)
-        var taskChartCanvas = document.getElementById('taskChart').getContext('2d');
-        var taskChart = new Chart(taskChartCanvas, {
-            type: 'doughnut',
-            data: {
-                labels: ['Completed', 'Pending'],
-                datasets: [{
-                    data: [{{ completed_tasks }}, {{ pending_tasks }}], // Pass data from the view
-                    backgroundColor: ['#4CAF50', '#FFC107'],
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
+document.addEventListener('DOMContentLoaded', function() {
+    // Task Completion Chart
+    new Chart(document.getElementById('taskChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Pending'],
+            datasets: [{
+                data: [{{ completed_tasks }}, {{ pending_tasks }}],
+                backgroundColor: ['#00a65a', '#f39c12'],
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
             }
-        });
+        }
+    });
 
-        // Evaluation Scores Chart (Bar)
-        var evaluationChartCanvas = document.getElementById('evaluationChart').getContext('2d');
-        var evaluationChart = new Chart(evaluationChartCanvas, {
-            type: 'bar',
-            data: {
-                labels: {{ evaluation_dates|safe }}, // Pass evaluation dates from the view
-                datasets: [{
-                    label: 'Scores',
-                    data: {{ evaluation_scores|safe }}, // Pass evaluation scores from the view
-                    backgroundColor: '#3F51B5',
-                }]
+    // Evaluation Trend Chart
+    new Chart(document.getElementById('evaluationChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: {{ evaluation_dates|safe }},
+            datasets: [{
+                label: 'Performance Score',
+                data: {{ evaluation_scores|safe }},
+                borderColor: '#3c8dbc',
+                backgroundColor: 'rgba(60, 141, 188, 0.1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#3c8dbc',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100, // Assuming scores are out of 100
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Score: ' + context.raw + '/100';
+                        }
                     }
                 }
             }
-        });
+        }
     });
+
+    // Performance Radar Chart
+    new Chart(document.getElementById('performanceRadarChart').getContext('2d'), {
+        type: 'radar',
+        data: {
+            labels: ['Punctuality', 'Reliability', 'Communication', 'Technical Skills', 'Responsibility', 'Teamwork'],
+            datasets: [{
+                label: 'Average Scores',
+                data: [
+                    {{ avg_punctuality|default:0 }},
+                    {{ avg_reliability|default:0 }},
+                    {{ avg_communication|default:0 }},
+                    {{ avg_technical_skills|default:0 }},
+                    {{ avg_responsibility|default:0 }},
+                    {{ avg_teamwork|default:0 }}
+                ],
+                backgroundColor: 'rgba(60, 141, 188, 0.2)',
+                borderColor: 'rgba(60, 141, 188, 1)',
+                pointBackgroundColor: 'rgba(60, 141, 188, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(60, 141, 188, 1)'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 5
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
 </script>
+
+<style>
+.direct-chat-messages {
+    transform: none !important;
+}
+.direct-chat-msg {
+    margin-bottom: 15px;
+}
+.direct-chat-text {
+    border-radius: 8px;
+    padding: 10px 15px;
+    background: #f4f6f9;
+    border: 1px solid #e0e0e0;
+}
+.direct-chat-name {
+    font-weight: 600;
+    color: #555;
+}
+.direct-chat-timestamp {
+    color: #999;
+    font-size: 0.85em;
+}
+/* Task table styling */
+.table-task {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+}
+.table-task th, 
+.table-task td {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+}
+.table-task thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+</style>
 {% endblock %}

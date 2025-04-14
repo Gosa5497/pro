@@ -137,7 +137,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class EvaluationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Evaluation
+        model = MonthlyEvaluation
         fields = '__all__'
 
 class NotificationSerializer(serializers.ModelSerializer):

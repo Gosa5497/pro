@@ -98,28 +98,28 @@
 
         <!-- Sidebar -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
-            <a href="{% url 'home' %}" class="brand-link">
+            <a href="{% url 'student_dashboard' %}" class="brand-link">
                 <span class="brand-text font-weight-light">Student Dashboard</span>
             </a>
             <div class="sidebar">
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                         <li class="nav-item">
-                            <a href="{% url 'internship_applications' %}" class="nav-link">
+                            <a href="{% url 'existing_internships' %}" class="nav-link">
                                 <i class="nav-icon fas fa-file"></i>
                                 <p>Internship Applications</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'progress_reports' %}" class="nav-link">
+                            <a href="{% url 'submit_daily_task' %}" class="nav-link">
                                 <i class="nav-icon fas fa-chart-line"></i>
                                 <p>Progress Reports</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'feedback' %}" class="nav-link">
+                            <a href="{% url 'view_submitted_tasks' %}" class="nav-link">
                                 <i class="nav-icon fas fa-comments"></i>
-                                <p>Feedback</p>
+                                <p>Task Feedback</p>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -129,9 +129,15 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'final_report' %}" class="nav-link">
+                            <a href="{% url 'list_chat_groups' %}" class="nav-link">
                                 <i class="nav-icon fas fa-file-alt"></i>
-                                <p>Final Internship Report</p>
+                                <p>Communications</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'profile' %}" class="nav-link">
+                                <i class="nav-icon fas fa-file-alt"></i>
+                                <p>Profile</p>
                             </a>
                         </li>
                     </ul>
@@ -151,12 +157,7 @@
         </div>
 
         <!-- Footer -->
-        <footer class="main-footer">
-            <div class="float-right d-none d-sm-block">
-                <b>Version</b> 1.0.0
-            </div>
-            <strong>Copyright &copy; 2023 <a href="#">Your Company</a>.</strong> All rights reserved.
-        </footer>
+
     </div>
 
     <!-- jQuery -->

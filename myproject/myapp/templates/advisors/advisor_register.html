@@ -1,5 +1,4 @@
-{% extends 'departement_head/base.html' %}
-
+{% extends base_template %}
 {% block content %}
 <div class="register-logo">
     <a href="#"><b>Advisor</b> Registration</a>
@@ -15,10 +14,6 @@
             <div class="row">
                 <div class="col-8">
                     <div class="icheck-primary">
-                        <input type="checkbox" id="agreeTerms" name="terms" value="1">
-                        <label for="agreeTerms">
-                            I agree to the <a href="#">terms</a>
-                        </label>
                     </div>
                 </div>
                 <div class="col-4">
@@ -26,8 +21,6 @@
                 </div>
             </div>
         </form>
-
-        <a href="{% url 'login' %}" class="text-center">I already have a membership</a>
     </div>
 </div>
 {% endblock %}

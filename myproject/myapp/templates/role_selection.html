@@ -1,5 +1,5 @@
 <!-- templates/role_selection.html -->
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
 
 {% block content %}
 <div class="container-fluid">
@@ -38,7 +38,7 @@
         var urlMapping = {
             'department_head': "{% url 'department_head_create' %}",
             'advisor': "{% url 'add_advisor' %}",
-            'student': "{% url 'student_register' %}",
+            'student': "{% url 'add_student' %}",
             'supervisor': "{% url 'supervisor_register' %}",
             'company_admin': "{% url 'company_admin_create' %}"
         };

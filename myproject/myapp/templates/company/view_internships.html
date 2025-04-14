@@ -9,6 +9,10 @@
                     <h1>View Internships</h1>
                 </div>
             </div>
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <a href="{% url 'post_internship' %}" class="btn btn-primary">Post New Internship</a>
+                </div>
         </div>
     </section>
 
@@ -27,8 +31,7 @@
                                         <tr>
                                             <th>Title</th>
                                             <th>Description</th>
-                                            <th>Start Date</th>
-                                            <th>End Date</th>
+                                            <th>Durations</th>
                                             <th>Status</th>
                                             <th>Applicants</th>  <!-- New column for applicants -->
                                             <th>Actions</th>
@@ -39,8 +42,14 @@
                                             <tr>
                                                 <td>{{ internship.title }}</td>
                                                 <td>{{ internship.description }}</td>
-                                                <td>{{ internship.start_date }}</td>
-                                                <td>{{ internship.end_date }}</td>
+                                                <td>
+                                                    {% if internship.duration %}
+                                                        {{ internship.duration }} months
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </td>
+                                                
                                                 <td>
                                                     {% if internship.is_open %}
                                                         <span class="badge badge-success">Open</span>
