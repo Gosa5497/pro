@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'insecure-default-key-for-dev')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = False
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 # Installed apps
