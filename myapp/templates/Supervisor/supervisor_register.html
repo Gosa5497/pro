@@ -1,0 +1,18 @@
+{% extends base_template %}
+
+{% block title %}Supervisor Registration{% endblock %}
+
+{% block content %}
+<h2>Supervisor Registration</h2>
+
+<form method="post" action="{% url 'supervisor_register' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    {{ form.as_p }}
+    {{ form.errors }}  <!-- Display form errors if any -->
+    
+    <button type="submit">Register</button>
+</form>
+
+<a href="{% url 'login' %}">Already have an account? Login here.</a>
+{% endblock %}

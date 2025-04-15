@@ -1,0 +1,212 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Company Management{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Company Management</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'department_head_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Company Management</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Export Button -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <a href="{% url 'export_company_data' %}" class="btn btn-success">
+                        <i class="fas fa-download"></i> Export Company Data
+                    </a>
+                </div>
+            </div>
+
+            <!-- Company Progress Charts -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Internships Offered</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="internshipChart" style="height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Applications Received</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="applicationChart" style="height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company List -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">List of Companies</h3>
+                            <div class="card-tools">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Name</th>
+                                        <th>Industry</th>
+                                        <th>Location</th>
+                                        <th>Contact Email</th>
+                                        <th>Contact Phone</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for company in companies %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ company.name }}</td>
+                                        <td>{{ company.industry }}</td>
+                                        <td>{{ company.location }}</td>
+                                        <td>{{ company.contact_email }}</td>
+                                        <td>{{ company.contact_phone }}</td>
+                                        <td>
+                                            <a href="{% url 'view_company' company.id %}" class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No companies found.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Feedback</h3>
+                        </div>
+                        <div class="card-body">
+                            {% if company_feedbacks %}
+                                <ul class="list-group">
+                                    {% for feedback in company_feedbacks %}
+                                        <li class="list-group-item">
+                                            <strong>{{ feedback.submitted_by.get_full_name }}</strong> ({{ feedback.created_at }}):
+                                            <p>{{ feedback.feedback }}</p>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>No feedback available.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Form -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Provide Feedback</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'submit_company_feedback' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="company">Select Company</label>
+                                    <select class="form-control" id="company" name="company_id" required>
+                                        {% for company in companies %}
+                                            <option value="{{ company.id }}">{{ company.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="feedback">Feedback</label>
+                                    <textarea class="form-control" id="feedback" name="feedback" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(function () {
+        // Internships Offered Chart (Bar Chart)
+        var internshipChartCanvas = document.getElementById('internshipChart').getContext('2d');
+        var internshipChart = new Chart(internshipChartCanvas, {
+            type: 'bar',
+            data: {
+                labels: {{ company_names|safe }}, // Pass company names from the view
+                datasets: [{
+                    label: 'Internships Offered',
+                    data: {{ internships_offered|safe }}, // Pass data from the view
+                    backgroundColor: '#4CAF50',
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Applications Received Chart (Bar Chart)
+        var applicationChartCanvas = document.getElementById('applicationChart').getContext('2d');
+        var applicationChart = new Chart(applicationChartCanvas, {
+            type: 'bar',
+            data: {
+                labels: {{ company_names|safe }}, // Pass company names from the view
+                datasets: [{
+                    label: 'Applications Received',
+                    data: {{ applications_received|safe }}, // Pass data from the view
+                    backgroundColor: '#3F51B5',
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "supervisor/base.html" %}
+{% block title %}Student Activity - {{ student.user.get_full_name }}{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">Student Activity - {{ student.user.get_full_name }}</h1>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main Content -->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <!-- Task List -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Tasks Assigned to {{ student.user.get_full_name }}</h3>
+                        </div>
+                        <div class="card-body">
+                            {% if tasks %}
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Task Description</th>
+                                            <th>Deadline</th>
+                                            <th>Status</th>
+                                            <th>Student Reported</th>
+                                            <th>Supervisor Feedback</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for task in tasks %}
+                                            <tr>
+                                                <td>{{ task.description }}</td>
+                                                <td>{{ task.deadline }}</td>
+                                                <td>
+                                                    {% if task.is_confirmed %}
+                                                        <span class="badge badge-success">Confirmed</span>
+                                                    {% else %}
+                                                        <span class="badge badge-warning">Pending</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if task.student_input %}
+                                                        <span class="badge badge-success">Reported</span>
+                                                    {% else %}
+                                                        <span class="badge badge-danger">Not Reported</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ task.supervisor_feedback|default:"No feedback provided" }}</td>
+                                                <td>
+                                                    <!-- Form for confirming tasks and providing feedback -->
+                                                    <form method="post" action="{% url 'confirm_task' task.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="form-group">
+                                                            <textarea name="supervisor_feedback" class="form-control" rows="2" placeholder="Provide feedback..."></textarea>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input type="checkbox" name="is_confirmed" class="form-check-input" id="confirm_task_{{ task.id }}">
+                                                            <label class="form-check-label" for="confirm_task_{{ task.id }}">Confirm Task</label>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                <p class="text-muted">No tasks assigned to this student.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

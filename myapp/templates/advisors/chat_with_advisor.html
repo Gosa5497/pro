@@ -1,0 +1,109 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Chat with {{ advisor.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Chat with {{ advisor.user.get_full_name }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <a href="{% url 'update_advisor' advisor.id %}" class="btn btn-primary float-right">
+                        <i class="fas fa-edit"></i> Update Advisor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card direct-chat direct-chat-primary">
+                <div class="card-header">
+                    <h3 class="card-title">Chat Messages</h3>
+                </div>
+                <div class="card-body">
+                    <div class="direct-chat-messages" style="height: 400px;">
+                        {% for message in chat_messages %}
+                        <div class="direct-chat-msg {% if message.sender == request.user %}right{% endif %}">
+                            <div class="direct-chat-infos clearfix">
+                                <span class="direct-chat-name float-{% if message.sender == request.user %}right{% else %}left{% endif %}">
+                                    {{ message.sender.get_short_name }}
+                                </span>
+                                <span class="direct-chat-timestamp float-{% if message.sender == request.user %}left{% else %}right{% endif %}">
+                                    {{ message.timestamp|date:"H:i" }}
+                                </span>
+                            </div>
+                            <div class="direct-chat-text">
+                                {{ message.content }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form method="POST" action="{% url 'send_message' advisor.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" name="message" 
+                                   placeholder="Type Message ..." 
+                                   class="form-control" required>
+                            <span class="input-group-append">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+.direct-chat-messages {
+    overflow-y: auto;
+    padding: 10px;
+    height: 400px;
+    background: #f8f9fa;
+}
+.direct-chat-text {
+    border-radius: 15px;
+    padding: 8px 15px;
+    margin: 5px 0;
+    max-width: 80%;
+}
+.direct-chat-msg.right .direct-chat-text {
+    background: #007bff;
+    color: white;
+    float: right;
+}
+.direct-chat-msg .direct-chat-text {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+}
+</style>
+
+<script>
+// Auto-scroll to bottom of chat
+const chatMessages = document.querySelector('.direct-chat-messages');
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+// Auto-refresh messages every 5 seconds
+setInterval(function() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newMessages = doc.querySelector('.direct-chat-messages').innerHTML;
+            document.querySelector('.direct-chat-messages').innerHTML = newMessages;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+}, 5000);
+</script>
+{% endblock %}

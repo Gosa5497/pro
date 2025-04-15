@@ -1,0 +1,43 @@
+{% extends 'crud_base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ object_list|length }} {{ model_name|title }}s</h3>
+        <div class="card-tools">
+            <a href="{% url create_url %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Add New
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    {% for field in fields %}
+                    <th>{{ field|title }}</th>
+                    {% endfor %}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for object in object_list %}
+                <tr>
+                    {% for field in fields %}
+                    <td>{{ object|getattr:field }}</td>
+                    {% endfor %}
+                    <td>
+                        <a href="{% url update_url object.pk %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url delete_url object.pk %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

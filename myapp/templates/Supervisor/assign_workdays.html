@@ -1,0 +1,18 @@
+<!-- templates/supervisor/assign_workdays.html -->
+{% extends "supervisor/base.html" %}
+
+{% block content %}
+  <h2>Assign Workdays to Students</h2>
+  <!-- templates/supervisor/assign_workdays.html -->
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Assign Workdays</button>
+  </form>
+  <h3>Assigned Students</h3>
+  <ul>
+    {% for student in assigned_students %}
+      <li>{{ student.user.get_full_name }}</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

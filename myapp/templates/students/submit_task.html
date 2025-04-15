@@ -1,0 +1,41 @@
+<!-- students/submit_task.html -->
+{% extends 'students/base.html' %}
+{% block title %}Submit Task{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">Submit Daily Task</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6 offset-md-3">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Task: {{ task.description }}</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    {{ form.student_input }}
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Submit Task
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

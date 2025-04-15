@@ -1,0 +1,44 @@
+{% extends 'company_admin/base.html' %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Update Supervisor: {{ supervisor.user.get_full_name }}</h1>
+    </section>
+
+    <section class="content">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_user_info">User</label>
+                                <input type="text" id="id_user_info" class="form-control" 
+                                       value="{{ supervisor.user.get_full_name }}" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_company_info">Company</label>
+                                <input type="text" id="id_company_info" class="form-control" 
+                                       value="{{ supervisor.company.name }}" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_position">Position</label>
+                                {{ form.position }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group text-right">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Supervisor
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

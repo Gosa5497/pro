@@ -1,0 +1,80 @@
+<!-- apply_internship.html -->
+{% extends 'students/base.html' %}
+{% block title %}Apply for Internship{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Apply for: {{ internship.title }}</h3>
+            <small class="text-light">{{ internship.company.name }}</small>
+        </div>
+        
+        <div class="card-body">
+            <!-- Requirements Section -->
+            <div class="mb-4">
+                <h4 class="text-primary">Internship Requirements</h4>
+                
+                <!-- Matched Requirements -->
+                {% if matched_qualifications %}
+                <div class="alert alert-success">
+                    <h5>✅ You Meet These Requirements:</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for req in matched_qualifications %}
+                        <li class="list-group-item bg-transparent">
+                            <i class="fas fa-check-circle text-success"></i> {{ req }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <!-- Missing Requirements -->
+                {% if missing_qualifications %}
+                <div class="alert alert-warning">
+                    <h5>⚠️ Missing Requirements:</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for req in missing_qualifications %}
+                        <li class="list-group-item bg-transparent">
+                            <i class="fas fa-exclamation-triangle text-warning"></i> {{ req }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="mt-2">
+                        <a href="{% url 'student_profile_update' %}" class="btn btn-sm btn-outline-warning">
+                            Update Your Profile
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Application Form -->
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    {{ form.cover_letter.label_tag }}
+                    {{ form.cover_letter }}
+                    {% if form.cover_letter.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.cover_letter.errors }}
+                        </div>
+                    {% endif %}
+                    <small class="form-text text-muted">{{ form.cover_letter.help_text }}</small>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'existing_internships'%}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Submit Application
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

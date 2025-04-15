@@ -1,0 +1,9 @@
+<h2>Grant Chat Group Permission</h2>
+<p>Internship: {{ internship.title }}</p>
+<p>Student: {{ student.user.first_name }} {{ student.user.last_name }}</p>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Grant Permission</button>
+</form>

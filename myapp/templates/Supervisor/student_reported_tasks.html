@@ -1,0 +1,87 @@
+{% extends 'Supervisor/base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Daily Work Reports</h2>
+    <p>Workdays per week: {{ work_schedule.workdays_per_week }}</p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped" style="border-collapse: collapse;">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Week</th>
+                    <th>Day</th>
+                    <th>Date</th>
+                    <th>Work Performed</th>
+                    <th>Supervisor Feedback</th>
+                    <th>Monthly Evaluation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in grouped_tasks %}
+                <tr>
+                    <td rowspan="{{ week.tasks|length }}" style="border: 1px solid #dee2e6; background-color: #f8f9fa;">
+                        Week {{ week.week_number }}
+                    </td>
+                    {% for task in week.tasks %}
+                        {% if not forloop.first %}<tr>{% endif %}
+                        <td style="border: 1px solid #dee2e6;">{{ task.work_date|date:"l" }}</td>
+                        <td style="border: 1px solid #dee2e6;">{{ task.work_date|date:"Y-m-d" }}</td>
+                        <td style="border: 1px solid #dee2e6;">{{ task.description }}</td>
+
+                        {% if forloop.first %}
+                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center" style="border: 1px solid #dee2e6; background-color: #f8f9fa;">
+                            {% if week.is_complete %}
+                                {% if week.has_feedback %}
+                                    <div class="text-start">
+                                        <strong>Feedback:</strong>
+                                        <p class="text-muted small">{{ week.tasks.0.supervisor_feedback }}</p>
+                                        <a href="{% url 'edit_weekly_feedback' student_id=student.pk week_number=forloop.parentloop.counter %}" class="btn btn-sm btn-outline-secondary mt-1">Edit</a>
+                                    </div>
+                                {% else %}
+                                    <a href="{% url 'provide_weekly_feedback' student_id=student.pk week_number=week.week_number %}" 
+                                       class="btn btn-sm btn-primary">
+                                       Give Feedback
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">
+                                    {{ week.tasks|length }}/{{ work_schedule.workdays_per_week }} days
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center" style="border: 1px solid #dee2e6; background-color: #f8f9fa;">
+                            {% if week.week_number|divisibleby:4 and week.is_complete %}
+                                {% if week.month_evaluation_exists %}
+                                    <a href="{% url 'view_monthly_evaluation' student_id=student.pk month_number=week.week_number|div:4|add:1 %}" 
+                                       class="btn btn-sm btn-outline-success">
+                                       Evaluated
+                                    </a>
+                                    <a href="{% url 'edit_monthly_evaluation' student_id=student.pk month_number=month.month_number %}" 
+                                       class="btn btn-sm btn-outline-secondary">Edit</a>
+                                {% else %}
+                                    <a href="{% url 'submit_monthly_evaluation' student_id=student.pk month_number=week.week_number|div:4|add:1 %}" 
+                                       class="btn btn-sm btn-success">
+                                       Monthly Evaluation
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        {% if not forloop.first %}</tr>{% endif %}
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No reports submitted yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

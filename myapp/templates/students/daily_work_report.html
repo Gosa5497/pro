@@ -1,0 +1,33 @@
+<!-- students/daily_work_report.html -->
+{% extends "students/base.html" %}
+
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <h1 class="text-center mb-4">Submit Daily Work Report</h1>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                {{ form.as_p }}
+                                <button type="submit" class="btn btn-primary">Submit Task</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

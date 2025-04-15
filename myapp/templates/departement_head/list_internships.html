@@ -1,0 +1,56 @@
+{% extends 'departement_head/base.html' %}
+{% block title %}Select Internship{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Select Internship</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Internships in Your Departmet Students Get Approval From</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Internship Title</th>
+                                <th>Company</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for internship in internships %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ internship.title }}</td>
+                                <td>{{ internship.company.name }}</td>
+                                <td>
+                                    <a href="{% url 'list_students_for_permission' internship.id %}" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-users"></i> Select
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No internships found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

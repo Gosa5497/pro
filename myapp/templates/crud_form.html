@@ -1,0 +1,24 @@
+<!-- templates/crud_form.html -->
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if object %}Update User Role{% else %}Create User Role{% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">
+                    {% if object %}Update{% else %}Create{% endif %}
+                </button>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

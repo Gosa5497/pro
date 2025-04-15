@@ -1,0 +1,37 @@
+{% extends 'company_admin/base.html' %}
+{% block title %}Update Internship{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1>Update Internship</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Internship Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                {{ form.as_p }}
+                                <button type="submit" class="btn btn-primary">Update</button>
+                                <a href="{% url 'view_internships' %}" class="btn btn-secondary">Cancel</a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

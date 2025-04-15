@@ -1,0 +1,71 @@
+{% extends 'advisors/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Advisor View - Student Progress</h2>
+    <p>Workdays per week: {{ work_schedule.workdays_per_week }}</p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Week</th>
+                    <th>Day</th>
+                    <th>Date</th>
+                    <th>Work Preformed</th>
+                    <th>Supervisor Feedback</th>
+                    <th>Advisor Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in grouped_tasks %}
+                <tr>
+                    <td rowspan="{{ week.tasks|length }}" class="align-middle" style="background-color: #f8f9fa;">
+                        Week {{ week.week_number }}
+                    </td>
+                    {% for task in week.tasks %}
+                        {% if not forloop.first %}<tr>{% endif %}
+                        <td>{{ task.work_date|date:"l" }}</td>
+                        <td>{{ task.work_date|date:"Y-m-d" }}</td>
+                        <td>{{ task.description }}</td>
+
+                        {% if forloop.first %}
+                        <!-- Supervisor Feedback -->
+                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center" style="background-color: #f8f9fa;">
+                            {% if week.supervisor_feedback %}
+                            <p class="text-muted small">{{ week.tasks.0.supervisor_feedback }}</p>
+                            {% else %}
+                                ⏳ Pending
+                            {% endif %}
+                        </td>
+
+                        <!-- Advisor Feedback -->
+                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center" style="background-color: #f8f9fa;">
+                            {% if week.supervisor_feedback %}
+                                {% if week.advisor_feedback %}
+                                   {{ task.advisor_feedback }}
+                                    <a href="{% url 'advisor_edit_feedback' student.pk week.week_number %}">
+                                        Edit
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'advisor_provide_feedback' student.pk week.week_number %}" class="btn btn-sm btn-primary">
+                                        Give Feedback
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Waiting for Supervisor</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        {% if not forloop.first %}</tr>{% endif %}
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No tasks submitted yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

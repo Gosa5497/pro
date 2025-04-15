@@ -1,0 +1,47 @@
+{% extends 'students/base.html' %}
+{% block title %}Internship Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h3>{{ internship.title }}</h3>
+            <small>at {{ internship.company.name }}</small>
+        </div>
+        <div class="card-body">
+            <p><strong>Description:</strong></p>
+            <p>{{ internship.description }}</p>
+
+            <p><strong>Duration:</strong> {{ internship.get_duration_display }}</p>
+            <p><strong>Training Format:</strong> {{ internship.get_training_format_display }}</p>
+
+            <p><strong>Training Types:</strong> {{ internship.formatted_training_types }}</p>
+            <p><strong>Required Qualifications:</strong> {{ internship.formatted_required_qualifications }}</p>
+            <p><strong>Optional Qualifications:</strong> {{ internship.formatted_optional_qualifications }}</p>
+
+            <p>
+                <strong>Status:</strong>
+                {% if internship.is_open %}
+                    <span class="badge badge-success">Open</span>
+                {% else %}
+                    <span class="badge badge-danger">Closed</span>
+                {% endif %}
+            </p>
+
+            {% if is_student %}
+                {% if internship.is_open %}
+                    {% if has_applied %}
+                        <span class="badge badge-info">You have already applied for this internship.</span>
+                    {% else %}
+                        <a href="{% url 'apply_internship' internship.id %}" class="btn btn-success mt-2">
+                            <i class="fas fa-paper-plane"></i> Apply Now
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted mt-2">This internship is currently closed.</p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'students/base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Your Tasks</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.created_at|date:"Y-m-d" }}</td>
+
+                <td>{{ task.description }}</td>
+                <td>{{ task.status }}</td>
+                <td>
+                    {% if task.can_edit %}
+                        <a href="{% url 'edit_task' task.id %}" class="btn btn-sm btn-warning">Edit</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'students/base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>{% if is_edit %}Edit{% else %}Submit{% endif %} Daily Task</h2>
+    <p>Today: {{ today|date:"l, F j, Y" }}</p>
+    
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <div class="form-group">
+            <button type="submit" name="submit" class="btn btn-primary">
+                Submit Task
+            </button>
+            <button type="submit" name="save" class="btn btn-secondary">
+                Save Draft
+            </button>
+            <a href="{% url 'student_dashboard' %}" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

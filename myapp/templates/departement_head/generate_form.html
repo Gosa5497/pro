@@ -1,0 +1,29 @@
+<!-- generate_evaluation_form.html -->
+{% extends 'departement_head/base.html' %}
+{% block content %}
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Generate Monthly Performance Evaluation Form</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-success">Generate PDF</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

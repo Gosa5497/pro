@@ -1,0 +1,184 @@
+{% extends 'company_admin/base.html' %}
+{% block title %}Company Admin Dashboard{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    <h1 class="text-center mb-4">
+                        Welcome, <span class="text-primary">{{ user.get_full_name|default:user.username }}</span>
+                    </h1>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main Content -->
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Stats Section -->
+            <div class="row">
+                <!-- Total Applications -->
+                <div class="col-md-4">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Total Applications</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text display-4">{{ stats.total_applications }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Open Internships -->
+                <div class="col-md-4">
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Open Internships</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text display-4">{{ stats.open_internships }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Applications -->
+                <div class="col-md-4">
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Pending Applications</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text display-4">{{ stats.pending_applications }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
+            <!-- Actions Section -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">Actions</h3>
+                        </div>
+                        <div class="card-body">
+                            <a href="{% url 'manage_applications' %}" class="btn btn-primary">
+                                <i class="fas fa-file-alt"></i> Manage Applications
+                            </a>
+                            <a href="{% url 'toggle_applications' %}" class="btn btn-warning">
+                                <i class="fas fa-toggle-{% if company.is_accepting_applications %}on{% else %}off{% endif %}"></i>
+                                {% if company.is_accepting_applications %}Close Applications{% else %}Open Applications{% endif %}
+                            </a>
+                            <!-- New Button: Assign Supervisor to Students -->
+                            <a href="{% url 'assign_supervisor_to_students' %}" class="btn btn-success">
+                                <i class="fas fa-user-tie"></i> Assign Supervisor to Students
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
+            <!-- Internship Postings Section -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-secondary">
+                        <div class="card-header">
+                            <h3 class="card-title">Internship Postings</h3>
+                        </div>
+                        <div class="card-body">
+                            <a href="{% url 'post_internship' %}" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Post New Internship
+                            </a>
+                            <a href="{% url 'view_internships' %}" class="btn btn-info">
+                                <i class="fas fa-list"></i> View Internships
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
+            <!-- Supervisors Section -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">Supervisors</h3>
+                        </div>
+                        <div class="card-body">
+                            <a href="{% url 'supervisor_register' %}" class="btn btn-danger">
+                                <i class="fas fa-user-plus"></i> Add Supervisor
+                            </a>
+                            <a href="{% url 'supervisor_list' %}" class="btn btn-warning">
+                                <i class="fas fa-users"></i> View Supervisors
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
+            <!-- Company Profile Section -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-purple">
+                        <div class="card-header">
+                            <h3 class="card-title">Company Profile</h3>
+                        </div>
+                        <div class="card-body">
+                            <a href="{% url 'edit_company' company.id %}" class="btn btn-purple">
+                                <i class="fas fa-edit"></i> Edit Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
+            <!-- Reports Section -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Reports</h3>
+                        </div>
+                        <div class="card-body">
+                            <a href="{% url 'generate_reports' %}" class="btn btn-info">
+                                <i class="fas fa-file-pdf"></i> Generate Reports
+                            </a>
+                            <a href="{% url 'home' %}" class="btn btn-secondary">
+                                <i class="fas fa-file-alt"></i> View Reports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+
+            <!-- Notifications Section -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Notifications</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                {% for notification in notifications %}
+                                    <li class="list-group-item">
+                                        {{ notification.message }}
+                                        <span class="badge badge-{{ notification.status|yesno:'success,danger' }}">
+                                            {{ notification.status|yesno:"Read,Unread" }}
+                                        </span>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item">No new notifications.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </section>
+</div>
+{% endblock %}

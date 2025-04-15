@@ -1,0 +1,108 @@
+{% extends 'departement_head/base.html' %}
+{% load static %}
+{% block title %}Advisor Management{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Page Header Section -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Advisor Management</h1>
+                </div>
+                <div class="col-sm-6">
+                    <!-- Add New Advisor Button -->
+                    <a href="{% url 'add_advisor' %}" class="btn btn-success float-right">
+                        <i class="fas fa-plus"></i> Add New Advisor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Section -->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Advisor List Table -->
+                    <table class="table table-bordered table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Assigned Students</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for advisor in advisors %}
+                            <tr>
+                                <td>{{ advisor.user.get_full_name }}</td>
+                                <td>{{ advisor.user.email }}</td>
+                                <td>{{ advisor.department.name }}</td>
+                                <td>
+                                    <a href="{% url 'advisor_assigned_students' user.id %}" class="btn btn-warning">
+                                        <i class="fas fa-comment"></i> View Assigned Students
+                                    </a>
+                                    <!-- Assigned Students Link -->
+                                    <a href="{% url 'advisor_assigned_students' advisor.user.id %}" class="btn btn-link">
+                                        {{ advisor.assigned_students.count }} Students
+                                    </a>
+                                </td>
+                                <td>
+                                    <!-- View Button -->
+                                    <a href="{% url 'view_advisor_details' advisor.user.id %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <!-- Edit Button -->
+                                    <a href="{% url 'update_advisor' advisor.user.id %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <!-- Delete Button -->
+                                    <button class="btn btn-danger btn-sm" data-toggle="modal" 
+                                            data-target="#deleteModal{{ advisor.user.id }}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Delete Confirmation Modal -->
+                            <div class="modal fade" id="deleteModal{{ advisor.user.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirm Delete</h5>
+                                            <button type="button" class="close" data-dismiss="modal">
+                                                <span>&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete advisor {{ advisor.user.get_full_name }}?</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <form method="POST" action="{% url 'delete_advisor' advisor.user.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <!-- No Advisors Found Message -->
+                            <tr>
+                                <td colspan="5" class="text-center">No advisors found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
