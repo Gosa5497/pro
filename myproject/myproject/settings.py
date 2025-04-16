@@ -12,7 +12,8 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['students.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['students-4erv.onrender.com', '127.0.0.1', 'localhost']
+
 
 
 # --- Installed Apps ---
@@ -45,7 +46,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # --- URL & Auth ---
 ROOT_URLCONF = 'myproject.urls'
 AUTH_USER_MODEL = 'myapp.User'
