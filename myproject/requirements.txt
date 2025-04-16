@@ -1,22 +1,22 @@
 # Core Django
 Django==5.1.3
 djangorestframework==3.15.2
-dj-database-url==2.1.0
+dj-database-url==2.3.0  # Updated to latest compatible version
 
 # Database
-mysqlclient==2.2.6  # Confirm Python 3.11 compatibility in Render
+mysqlclient==2.2.6  # Confirmed Python 3.11 compatible
 
 # Async/Channels
 channels==4.2.0
-channels-redis==4.2.0  # Missing but critical for Redis
-daphne==4.1.0  # Missing ASGI server
+channels-redis==4.2.0
+daphne==4.1.0  # ASGI server requirement
 
 # Security
 cryptography==44.0.1
 pyOpenSSL==25.0.0
 
 # Forms/UI
-django-crispy-forms==1.14.0
+django-crispy-forms==2.4  # Updated for Django 5 compatibility
 crispy-bootstrap5==2024.10
 django-widget-tweaks==1.5.0
 
@@ -28,19 +28,18 @@ python-dotenv==1.0.1
 # Essential dependencies
 asgiref==3.8.1
 sqlparse==0.5.2
-pytz==2024.1
 python-dateutil==2.9.0.post0
 
-# Render-specific
-psutil==5.9.8  # Helpful for resource monitoring
-redis==5.0.3  # Required for Redis integration
+# Redis & System Monitoring
+redis==5.0.3
+psutil==5.9.8
 
 # Optional (remove if unused)
 pillow==11.0.0
 reportlab==4.3.1
 openai==0.28.0
 
-# Pinned compatible versions
+# Security Pinning
 certifi==2025.1.31
 typing_extensions==4.12.2
 urllib3==2.3.0
