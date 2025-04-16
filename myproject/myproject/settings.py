@@ -67,20 +67,28 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 ASGI_APPLICATION = 'myproject.asgi.application'
 
 # Database
+# Database configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQL_DATABASE', 'mah'),
-        'USER': os.environ.get('MYSQL_USER', 'root'),
-        'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'GO19667543'),
-        'HOST': os.environ.get('MYSQL_HOST', '127.0.0.1'),
-        'PORT': os.environ.get('MYSQL_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'ssl': {'ca': os.environ.get('MYSQL_SSL_CA', '')}  # For cloud MySQL services
+            'ssl': {'ca': os.environ.get('MYSQL_SSL_CA', '')}
         }
     }
 }
+
+# Update with DATABASE_URL if present
+db_from_env = dj_database_url.config(
+    conn_max_age=600,
+    conn_health_checks=True,
+    default='mysql://root:GO19667543@127.0.0.1:3306/mah'  # Local fallback
+)
+DATABASES['default'].update(db_from_env)
+
+# Special handling for SSL
+if os.environ.get('MYSQL_SSL_MODE', '') == 'required':
+    DATABASES['default']['OPTIONS']['ssl'] = {'ca': os.environ.get('MYSQL_SSL_CA')}
 
 # Redis for Channels
 CHANNEL_LAYERS = {
