@@ -58,7 +58,6 @@ class User(AbstractUser):
         verbose_name = "User"
         verbose_name_plural = "Users"
 
-
 # Company Model
 class Company(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Company Name")
@@ -72,9 +71,29 @@ class Company(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def average_rating(self):
+        """
+        Calculate average rating from student reviews
+        Returns 0 if no ratings exist
+        """
+        return self.companyrating_set.aggregate(
+            avg_rating=models.Avg('rating')
+        )['avg_rating'] or 0.0
+
+    @property
+    def rating_count(self):
+        """Return total number of ratings received"""
+        return self.companyrating_set.count()
+
+    def get_rating_display(self):
+        """Formatted rating string with 1 decimal place"""
+        return f"{self.average_rating:.1f}/5.0"
+
     class Meta:
         verbose_name = "Company"
         verbose_name_plural = "Companies"
+        ordering = ['name']
 # Company Feedback Model
 class CompanyFeedback(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='feedbacks', verbose_name="Company")
@@ -241,6 +260,13 @@ class Student(models.Model):
 
     def task_reports_count(self):
         return self.task_set.count()
+    def get_ratable_internships(self):
+        return Internship.objects.filter(
+            student=self,
+            final_evaluation_submitted=True
+        ).exclude(
+            company_rating__student=self
+        )
 
     class Meta:
         verbose_name = "Student"
@@ -614,7 +640,12 @@ class ChatMessage(models.Model):
 #***************Evaluations and feedback********************
 
 class Task(models.Model):
-    status = models.CharField(max_length=20,null=True,blank=True, choices=[('completed', 'Completed'), ('pending', 'Pending')])
+    status = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        choices=[('completed', 'Completed'), ('pending', 'Pending')]
+    )
     internship = models.ForeignKey(Internship, on_delete=models.CASCADE, blank=True, null=True)
     student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name='tasks')
     supervisor = models.ForeignKey('Supervisor', on_delete=models.CASCADE, related_name='tasks')
@@ -634,8 +665,9 @@ class Task(models.Model):
     def clean(self):
         if self.advisor_feedback and not self.supervisor_feedback:
             raise ValidationError("Advisor feedback can only be given after the supervisor has provided feedback.")
+
     @property
-    def week_number(self):
+    def computed_week_number(self):
         try:
             schedule = WorkSchedule.objects.get(student=self.student, is_active=True)
             days_since_start = (self.work_date - schedule.created_at.date()).days
@@ -831,3 +863,49 @@ class MonthlyEvaluation(models.Model):
     class Meta:
         unique_together = ('student', 'month_number')
         ordering = ['-month_number']
+
+class Evaluation(models.Model):
+    internship = models.ForeignKey(Internship, on_delete=models.CASCADE)
+    supervisor = models.ForeignKey(Supervisor, on_delete=models.CASCADE)
+    
+    # Section A: Job Performance (1-5 scale)
+    knowledge = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    problem_solving = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    quality = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    punctuality = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    initiative = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    
+    # Section B: Soft Skills (1-5 scale)
+    dedication = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    cooperation = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    discipline = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    responsibility = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    socialization = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    communication = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    decision_making = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
+    
+    # Section C: Comments & Job Offer
+    potential_comments = models.TextField()
+    job_offer = models.BooleanField(default=False)
+    
+    # Calculated fields
+    total_mark = models.PositiveSmallIntegerField(editable=False)  # Auto-calculated (sum of all scores)
+    overall_performance = models.FloatField(editable=False)  # (total_mark/60)*20
+# models.py
+class CompanyRating(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    internship = models.ForeignKey(Internship, on_delete=models.CASCADE)
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="1 (Poor) - 5 (Excellent)"
+    )
+    comments = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('student', 'internship')
+
+    def __str__(self):
+        return f"{self.student} rated {self.company} - {self.rating}/5"
+#**************chatboot******************
