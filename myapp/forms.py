@@ -990,3 +990,21 @@ class AdvisorTaskFeedbackForm(forms.Form):
         required=True,
         label="Advisor Feedback"
     )
+class FinalEvaluationForm(forms.ModelForm):
+    class Meta:
+        model = Evaluation
+        fields = '__all__'
+        widgets = {
+            'knowledge': forms.RadioSelect(choices=[(i, i) for i in range(1, 6)]),
+            # Repeat for other 1-5 scale fields
+            'potential_comments': forms.Textarea(attrs={'rows': 4}),
+        }
+# forms.py
+class CompanyRatingForm(forms.ModelForm):
+    class Meta:
+        model = CompanyRating
+        fields = ['rating', 'comments']
+        widgets = {
+            'rating': forms.NumberInput(attrs={'min': 1, 'max': 5}),
+            'comments': forms.Textarea(attrs={'rows': 4}),
+        }
