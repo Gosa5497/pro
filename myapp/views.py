@@ -288,6 +288,29 @@ def apply_internship(request, internship_id):
     }
     return render(request, 'students/apply_internship.html', context)
 @login_required
+def communication_dash(request):
+    # Determine base template based on user role
+    user = request.user
+    if user.is_superuser:
+        base_template = "admin/admin_base.html"
+    elif getattr(user, "is_department_head", False):
+        base_template = "departement_head/base.html"
+    elif getattr(user, "is_advisor", False):
+        base_template = "advisors/base.html"
+    elif getattr(user, "is_supervisor", False):
+        base_template = "supervisor/base.html"
+    elif getattr(user, "is_student", False):
+        base_template = "students/base.html"
+    elif getattr(user, "is_company_admin", False):
+        base_template = "Company_Admin/base.html"
+    else:
+        base_template = "base.html"
+
+    return render(request, 'Supervisor/dashboard.html', {
+        'base_template': base_template
+    })
+
+@login_required
 def applicant_list(request, internship_id):
     internship = get_object_or_404(Internship, id=internship_id)
     applications = Application.objects.filter(internship=internship).select_related('student__user')
@@ -828,7 +851,7 @@ def create_supervisor_group(request):
     else:
         form = ChatGroupForm()
     
-    return render(request, 'groups/create_supervisor.html', {'form': form})
+    return render(request, 'Supervisor/create_supervisor.html', {'form': form})
 @login_required
 @user_passes_test(lambda u: u.is_student)
 def create_student_group(request):
