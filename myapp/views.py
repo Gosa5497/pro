@@ -38,6 +38,35 @@ def home(request):
     if request.user.is_authenticated:
         return redirect('dashboard_redirect')
     return render(request, 'home.html')
+# views.py
+from django.views.generic import DetailView
+from .models import Company, CompanyRating
+
+class CompanyDetailView(DetailView):
+    model = Company
+    template_name = 'company/company_detail.html'
+    context_object_name = 'company'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        company = self.get_object()
+        
+        # Add rating information
+        context['ratings'] = CompanyRating.objects.filter(company=company)
+        context['average_rating'] = company.average_rating
+        context['total_ratings'] = company.rating_count
+        
+        # Add internship information
+        context['internships'] = company.internship_set.filter(is_open=False)
+        
+        # Check if current user has rated
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'student'):
+            context['has_rated'] = CompanyRating.objects.filter(
+                company=company,
+                student=self.request.user.student
+            ).exists()
+        
+        return context
 @login_required
 @user_passes_test(lambda u: u.is_department_head)
 def advisor_assigned_student_departmenet_head(request, advisor_id):
@@ -85,14 +114,12 @@ def assign_advisor(request, student_user_id):
 def communication_page(request):
     return render(request, 'departement_head/communication_page.html')
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import Internship, Application
-
 @login_required
 def existing_internships(request):
     internships = Internship.objects.all()
     applied_internship_ids = []
+    locations = Company.objects.values_list('location', flat=True).distinct()
+    internship_titles = Internship.objects.values_list('title', flat=True).distinct()  # NEW LINE
 
     if hasattr(request.user, 'student'):
         student = request.user.student
@@ -103,9 +130,10 @@ def existing_internships(request):
     context = {
         'internships': internships,
         'applied_internship_ids': applied_internship_ids,
+        'locations': locations,
+        'internship_titles': internship_titles  # ADD THIS TO CONTEXT
     }
     return render(request, 'company/existing_internships.html', context)
-
 
 @login_required
 def internship_detail(request, pk):
@@ -259,11 +287,27 @@ def apply_internship(request, internship_id):
         'missing_qualifications': missing_qualifications,
     }
     return render(request, 'students/apply_internship.html', context)
-
-
+@login_required
 def applicant_list(request, internship_id):
     internship = get_object_or_404(Internship, id=internship_id)
-    applications = Application.objects.filter(internship=internship).select_related('student')
+    applications = Application.objects.filter(internship=internship).select_related('student__user')
+
+    # Determine base template based on user role
+    user = request.user
+    if user.is_superuser:
+        base_template = "admin/admin_base.html"
+    elif getattr(user, "is_department_head", False):
+        base_template = "departement_head/base.html"
+    elif getattr(user, "is_advisor", False):
+        base_template = "advisors/base.html"
+    elif getattr(user, "is_supervisor", False):
+        base_template = "supervisor/base.html"
+    elif getattr(user, "is_student", False):
+        base_template = "students/base.html"
+    elif getattr(user, "is_company_admin", False):
+        base_template = "Company_Admin/base.html"
+    else:
+        base_template = "base.html"
 
     # Prepare a list of applicants with their details
     applicants = []
@@ -272,17 +316,17 @@ def applicant_list(request, internship_id):
         applicant_data = {
             'name': f"{student.user.first_name} {student.user.last_name}",
             'email': student.user.email,
-            'id': application.id,  # Application ID
-            'status': application.status,  # Application status
+            'id': application.id,
+            'status': application.status,
         }
         applicants.append(applicant_data)
 
     context = {
         'internship': internship,
         'applicants': applicants,
+        'base_template': base_template,
     }
     return render(request, 'company/applicant_list.html', context)
-
 @login_required
 def apply_internship(request, internship_id):
     # Get the internship by its ID
@@ -3290,3 +3334,155 @@ def advisor_edit_feedback(request, student_id, feedback_id):
         'form': form
     }
     return render(request, 'advisors/edit_feedback.html', context)
+@login_required
+@user_passes_test(lambda u: u.is_supervisor)
+def submit_final_evaluation(request, internship_id):
+    internship = get_object_or_404(Internship, id=internship_id)
+    
+    if not internship.is_completed:
+        raise PermissionDenied("Internship duration not yet completed")
+    
+    if request.method == 'POST':
+        form = FinalEvaluationForm(request.POST)
+        if form.is_valid():
+            evaluation = form.save(commit=False)
+            evaluation.internship = internship
+            evaluation.supervisor = request.user.supervisor
+            
+            # Calculate totals
+            section_a = sum([
+                form.cleaned_data['knowledge'],
+                form.cleaned_data['problem_solving'],
+                # ... other Section A fields ...
+            ])
+            
+            section_b = sum([
+                form.cleaned_data['dedication'],
+                # ... other Section B fields ...
+            ])
+            
+            evaluation.total_mark = section_a + section_b
+            evaluation.overall_performance = (evaluation.total_mark / 60) * 20
+            evaluation.save()
+            
+            internship.final_evaluation_submitted = True
+            internship.save()
+            
+            return redirect('supervisor_dashboard')
+    else:
+        form = FinalEvaluationForm()
+    
+    return render(request, 'Supervisor/final_form.html', {
+        'form': form,
+        'internship': internship
+    })
+# views.py
+@login_required
+@user_passes_test(lambda u: u.is_student)
+def rate_company(request, internship_id):
+    internship = get_object_or_404(Internship, id=internship_id)
+    student = request.user.student
+    
+    if not internship.final_evaluation_submitted:
+        messages.error(request, "You can rate the company after final evaluation is submitted")
+        return redirect('student_dashboard')
+
+    try:
+        rating = CompanyRating.objects.get(student=student, internship=internship)
+    except CompanyRating.DoesNotExist:
+        rating = None
+
+    if request.method == 'POST':
+        form = CompanyRatingForm(request.POST, instance=rating)
+        if form.is_valid():
+            rating = form.save(commit=False)
+            rating.student = student
+            rating.company = internship.company
+            rating.internship = internship
+            rating.save()
+            messages.success(request, "Thank you for rating the company!")
+            return redirect('student_dashboard')
+    else:
+        form = CompanyRatingForm(instance=rating)
+
+    return render(request, 'students/rate_company.html', {
+        'form': form,
+        'internship': internship
+    })
+#*********chatboot*****************
+from django.shortcuts import render, redirect
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from .models import Internship, CompanyRating
+import pandas as pd
+import joblib
+import xgboost as xgb
+import os
+
+@login_required
+def get_recommendations(request):
+    if request.method == 'POST':
+        try:
+            student = request.user.student
+            
+            # 1. Get internships and prepare features
+            internships = Internship.objects.select_related('company').all()
+            features = [{
+                'student_department': student.department.name.strip().lower(),
+                'student_major': student.major.strip().lower(),
+                'internship_title': i.title.strip().lower(),
+                'company_location': i.company.location.strip().lower(),
+                'company_avg_rating': i.company.average_rating
+            } for i in internships]
+
+            # 2. Create DataFrame
+            df = pd.DataFrame(features)
+            print("📊 Prediction DataFrame Columns:", df.columns.tolist())
+
+            # 3. Load artifacts
+            MODEL_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'ml', 'xgboost_model.bin')
+            ENCODER_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'ml', 'encoders.pkl')
+            
+            if not all(os.path.exists(p) for p in [MODEL_PATH, ENCODER_PATH]):
+                raise FileNotFoundError("❌ Model artifacts missing. Train first!")
+
+            model = xgb.XGBClassifier()
+            model.load_model(MODEL_PATH)
+            encoders = joblib.load(ENCODER_PATH)
+            print("🔑 Encoder Columns:", encoders.keys())
+
+            # 4. Encode features
+            for col, encoder in encoders.items():
+                if col not in df.columns:
+                    raise KeyError(f"🚨 Column '{col}' missing in prediction data")
+                df[col] = encoder.transform(df[col].astype(str))
+
+            # 5. Validate final columns
+            print("🔍 Model Expected Features:", model.feature_names_in_)
+            missing_model_features = set(model.feature_names_in_) - set(df.columns)
+            if missing_model_features:
+                raise KeyError(f"🚨 Features missing: {missing_model_features}")
+
+            # 6. Predict
+            df['prediction_score'] = model.predict_proba(df[model.feature_names_in_])[:, 1]
+            
+            # 7. Get top recommendations
+            top_5 = df.nlargest(5, 'prediction_score')
+            top_ids = [internships[i].id for i in top_5.index]
+            ordered_internships = Internship.objects.filter(id__in=top_ids).in_bulk(top_ids)
+
+            context = {
+                'recommendations': ordered_internships.values(),
+                'preferences': {
+                    'department': student.department.name,
+                    'major': student.major
+                },
+                'predictions': zip(ordered_internships.values(), top_5.prediction_score)
+            }
+            return render(request, 'recommendation_results.html', context)
+
+        except Exception as e:
+            print(f"🔥 Recommendation Error: {str(e)}")
+            return render(request, 'error.html', {'message': str(e)})
+    
+    return redirect('existing_internships')
