@@ -106,25 +106,34 @@
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                         <!-- Dashboard -->
                         <li class="nav-item">
-                            <a href="{% url 'company_admin_dashboard' %}" class="nav-link">
+                            <a href="{% url 'supervisor_list' %}" class="nav-link">
                                 <i class="nav-icon fas fa-tachometer-alt"></i>
-                                <p>Dashboard</p>
+                                <p>Supervisor</p>
                             </a>
                         </li>
-
+                        <li class="nav-item">
+                            <a href="{% url 'assign_supervisor_to_students' %}" class="nav-link">
+                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                                <p>Assign Supervisor to students</p>
+                            </a>
+                        </li>
                         <!-- Applications -->
                         <li class="nav-item">
-                            <a href="{% url 'manage_applications' %}" class="nav-link">
+                            <a href="{% url 'view_internships' %}" class="nav-link">
                                 <i class="nav-icon fas fa-file-alt"></i>
-                                <p>Applications</p>
+                                <p>Posted Internship</p>
                             </a>
                         </li>
 
-                        <!-- Toggle Applications -->
                         <li class="nav-item">
-                            <a href="{% url 'toggle_applications' %}" class="nav-link">
-                                <i class="nav-icon fas fa-toggle-on"></i>
-                                <p>Toggle Applications</p>
+                            <a href="{% url 'private_chat_list' 'department_heads' %}" class="btn btn-success mb-2">
+                                <i class="fas fa-user-tie"></i>Communication
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/profile" class="nav-link">
+                                <i class="nav-icon fas fa-user"></i>
+                                <p>Profile</p>
                             </a>
                         </li>
                     </ul>
