@@ -2,14 +2,10 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.utils import timezone
-from django.utils.timezone import now
 from datetime import timedelta
-from django.contrib.auth.models import AbstractUser, Group, Permission
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 # Department Model
 class Department(models.Model):
@@ -23,7 +19,6 @@ class Department(models.Model):
         verbose_name = "Department"
         verbose_name_plural = "Departments"
 
-
 # Custom User Model
 class User(AbstractUser):
     # Role Flags
@@ -34,8 +29,16 @@ class User(AbstractUser):
     is_company_admin = models.BooleanField(default=False, verbose_name="Is Company Admin")
 
     # Common Fields
-    phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="Phone Number")
+    bio = models.TextField(blank=True, null=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+    phone = models.CharField(max_length=25, blank=True, null=True, verbose_name="Phone Number")
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True, verbose_name="Profile Image")
+    GENDER_CHOICES = (
+        ('M', 'Male'),
+        ('F', 'Female'),
+        
+    )
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True, verbose_name="Gender")
 
     # Fix auth model conflicts
     groups = models.ManyToManyField(
@@ -73,27 +76,22 @@ class Company(models.Model):
 
     @property
     def average_rating(self):
-        """
-        Calculate average rating from student reviews
-        Returns 0 if no ratings exist
-        """
         return self.companyrating_set.aggregate(
             avg_rating=models.Avg('rating')
         )['avg_rating'] or 0.0
 
     @property
     def rating_count(self):
-        """Return total number of ratings received"""
         return self.companyrating_set.count()
 
     def get_rating_display(self):
-        """Formatted rating string with 1 decimal place"""
         return f"{self.average_rating:.1f}/5.0"
 
     class Meta:
         verbose_name = "Company"
         verbose_name_plural = "Companies"
         ordering = ['name']
+
 # Company Feedback Model
 class CompanyFeedback(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='feedbacks', verbose_name="Company")
@@ -120,6 +118,7 @@ class DepartmentHead(models.Model):
     class Meta:
         verbose_name = "Department Head"
         verbose_name_plural = "Department Heads"
+
 # Company Admin Model
 class CompanyAdmin(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, verbose_name="User")
@@ -135,7 +134,6 @@ class CompanyAdmin(models.Model):
         verbose_name = "Company Admin"
         verbose_name_plural = "Company Admins"
 
-
 # Advisor Model
 class Advisor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, verbose_name="User")
@@ -149,7 +147,6 @@ class Advisor(models.Model):
         verbose_name = "Advisor"
         verbose_name_plural = "Advisors"
 
-
 # Supervisor Model
 class Supervisor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, verbose_name="User")
@@ -162,7 +159,6 @@ class Supervisor(models.Model):
     class Meta:
         verbose_name = "Supervisor"
         verbose_name_plural = "Supervisors"
-
 
 class Internship(models.Model):
     # Duration Choices
@@ -200,24 +196,20 @@ class Internship(models.Model):
     # Qualifications (optional or required)
     required_qualifications = models.JSONField(
         default=list,
-        help_text="List of qualifications required for the internship."
+        help_text="List of qualifications required for the internship (e.g., [{'title': 'Education', 'details': ['CS', 'Math']}, ...])"
     )
     optional_qualifications = models.JSONField(
         default=list,
-        help_text="List of optional qualifications for the internship."
+        help_text="List of optional qualifications (same format as required_qualifications)."
     )
 
-    def __str__(self):
+    def str(self):
         return f"{self.title} at {self.company.name}"
 
     def save(self, *args, **kwargs):
-        # Ensure training_types is always a list
+        # Convert comma-separated strings to list (for training_types only)
         if isinstance(self.training_types, str):
             self.training_types = [t.strip() for t in self.training_types.split(',')]
-        if isinstance(self.required_qualifications, str):
-            self.required_qualifications = [q.strip() for q in self.required_qualifications.split(',')]
-        if isinstance(self.optional_qualifications, str):
-            self.optional_qualifications = [q.strip() for q in self.optional_qualifications.split(',')]
         super().save(*args, **kwargs)
 
     @property
@@ -227,15 +219,74 @@ class Internship(models.Model):
 
     @property
     def formatted_required_qualifications(self):
-        """Returns required qualifications as a comma-separated string"""
-        return ', '.join(self.required_qualifications) if self.required_qualifications else "Not specified"
+        """Returns required qualifications as a readable string"""
+        if not self.required_qualifications:
+            return "Not specified"
+        return '; '.join(
+            f"{item['title']}: {', '.join(item['details'])}"
+            for item in self.required_qualifications if isinstance(item, dict)
+        )
 
     @property
     def formatted_optional_qualifications(self):
-        """Returns optional qualifications as a comma-separated string"""
-        return ', '.join(self.optional_qualifications) if self.optional_qualifications else "Not specified"
-# Student Model
+        """Returns optional qualifications as a readable string"""
+        if not self.optional_qualifications:
+            return "Not specified"
+        return '; '.join(
+            f"{item['title']}: {', '.join(item['details'])}"
+            for item in self.optional_qualifications if isinstance(item, dict)
+        )
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator, FileExtensionValidator
+
 class Student(models.Model):
+    student_id_validator = RegexValidator(
+        regex=r'^[A-Za-z0-9/]+$',
+        message='Student ID must contain only letters, numbers, and forward slashes (/).'
+    )
+
+    student_id = models.CharField(
+        max_length=20,
+        unique=True,
+        validators=[student_id_validator],
+        verbose_name="Student ID"
+    )
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, verbose_name="User")
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name="Department")
+    major = models.CharField(max_length=100, verbose_name="Major")
+    year = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        verbose_name="Year of Study"
+    )
+    resume = models.FileField(
+        upload_to='resumes/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx'])],
+        verbose_name="Resume"
+    )
+    status = models.CharField(max_length=50, default='Active', verbose_name="Status")
+    assigned_advisor = models.ForeignKey(Advisor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Assigned Advisor")
+    assigned_supervisor = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Assigned Supervisor")
+    internship = models.ForeignKey(Internship, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Internship")
+
+    def str(self):
+        return self.user.get_full_name()
+
+    def task_reports_count(self):
+        return self.task_set.count()
+
+    def get_ratable_internships(self):
+        return Internship.objects.filter(
+            student=self,
+            final_evaluation_submitted=True
+        ).exclude(
+            company_rating__student=self
+        )
+
+    class Meta:
+        verbose_name = "Student"
+        verbose_name_plural = "Students"
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, verbose_name="User")
     department = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name="Department")
     major = models.CharField(max_length=100, verbose_name="Major")
@@ -260,6 +311,7 @@ class Student(models.Model):
 
     def task_reports_count(self):
         return self.task_set.count()
+
     def get_ratable_internships(self):
         return Internship.objects.filter(
             student=self,
@@ -271,7 +323,6 @@ class Student(models.Model):
     class Meta:
         verbose_name = "Student"
         verbose_name_plural = "Students"
-
 
 # Application Model
 class Application(models.Model):
@@ -292,6 +343,7 @@ class Application(models.Model):
     class Meta:
         verbose_name = "Application"
         verbose_name_plural = "Applications"
+
 # Notification Model
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="User")
@@ -308,7 +360,6 @@ class Notification(models.Model):
     def __str__(self):
         return f"Notification for {self.user.username}"
 
-
 # Feedback Model
 class Feedback(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='feedbacks', verbose_name="Student")
@@ -323,7 +374,6 @@ class Feedback(models.Model):
         verbose_name = "Feedback"
         verbose_name_plural = "Feedbacks"
 
-
 # Role Model (RBAC)
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="Role Name")
@@ -337,7 +387,6 @@ class Role(models.Model):
         verbose_name = "Role"
         verbose_name_plural = "Roles"
 
-
 # User Role Mapping
 class UserRole(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="User")
@@ -350,7 +399,6 @@ class UserRole(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.role.name}"
-
 
 # Custom Field System
 class CustomField(models.Model):
@@ -378,7 +426,6 @@ class CustomField(models.Model):
         verbose_name = "Custom Field"
         verbose_name_plural = "Custom Fields"
 
-
 # Custom Field Value Model
 class CustomFieldValue(models.Model):
     field = models.ForeignKey(CustomField, on_delete=models.CASCADE, verbose_name="Field")
@@ -392,7 +439,6 @@ class CustomFieldValue(models.Model):
 
     def __str__(self):
         return f"{self.field.name}: {self.value}"
-
 
 # Form Template Model
 class FormTemplate(models.Model):
@@ -414,13 +460,7 @@ class FormTemplate(models.Model):
         verbose_name = "Form Template"
         verbose_name_plural = "Form Templates"
 
-#*****************Chat Groups and Messaging********************
-
-from django.contrib.auth import get_user_model
-
-
-User = get_user_model()
-
+# Chat Groups and Messaging
 class ChatGroup(models.Model):
     name = models.CharField(max_length=255)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_groups')
@@ -429,16 +469,12 @@ class ChatGroup(models.Model):
     group_image = models.ImageField(upload_to='group_images/', null=True, blank=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
-    
     department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.CASCADE)
     advisor = models.ForeignKey(Advisor, null=True, blank=True, on_delete=models.SET_NULL)
     supervisor = models.ForeignKey(Supervisor, null=True, blank=True, on_delete=models.SET_NULL)
     internship = models.ForeignKey(Internship, null=True, blank=True, on_delete=models.CASCADE)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    # Group type (private/public/channel)
     GROUP_TYPES = (
         ('private', 'Private Group'),
         ('public', 'Public Group'),
@@ -455,40 +491,30 @@ class ChatGroup(models.Model):
     def soft_delete(self):
         self.is_active = False
         self.save()
+
     def can_communicate(self, user):
-        """Improved permission check with proper indentation and logic"""
         if not user.is_authenticated:
             return False
-            
-        # Check if user is a direct participant
         if user in self.participants.all():
             return True
-
-        # Department-based groups
         if self.department:
             if hasattr(user, 'student') and user.student.department == self.department:
                 return True
             if hasattr(user, 'departmenthead') and user.departmenthead.department == self.department:
                 return True
             return False
-
-        # Advisor-based groups
         if self.advisor:
             if hasattr(user, 'student') and user.student.assigned_advisor == self.advisor:
                 return True
             if hasattr(user, 'advisor') and user.advisor == self.advisor:
                 return True
             return False
-
-        # Supervisor-based groups
         if self.supervisor:
             if hasattr(user, 'student') and user.student.assigned_supervisor == self.supervisor:
                 return True
             if hasattr(user, 'supervisor') and user.supervisor == self.supervisor:
                 return True
             return False
-
-        # Internship-based groups
         if self.internship:
             if hasattr(user, 'student'):
                 return Application.objects.filter(
@@ -497,35 +523,22 @@ class ChatGroup(models.Model):
                     status='Approved'
                 ).exists()
             return False
-
         return False
+
     def add_participants(self):
-        """
-        Automatically add participants based on the group's relationships.
-        Includes the Department Head for department groups.
-        """
         if self.department:
-            # Add students from the department
             students = Student.objects.filter(department=self.department)
             self.participants.add(*[s.user for s in students])
-            
-            # Add the Department Head of this department
             department_head = DepartmentHead.objects.filter(department=self.department).first()
             if department_head:
                 self.participants.add(department_head.user)
-            
         elif self.advisor:
-            # Add students assigned to the advisor
             students = Student.objects.filter(assigned_advisor=self.advisor)
             self.participants.add(*[s.user for s in students])
-            
         elif self.supervisor:
-            # Add students assigned to the supervisor
             students = Student.objects.filter(assigned_supervisor=self.supervisor)
             self.participants.add(*[s.user for s in students])
-            
         elif self.internship:
-            # Add students with approved internships
             students = Student.objects.filter(
                 application__internship=self.internship,
                 application__status='Approved'
@@ -540,7 +553,6 @@ class GroupMessage(models.Model):
         ('file', 'File'),
         ('deleted', 'Deleted'),
     )
-
     group = models.ForeignKey(ChatGroup, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField(blank=True)
@@ -550,8 +562,6 @@ class GroupMessage(models.Model):
     edited = models.DateTimeField(null=True, blank=True)
     deleted = models.BooleanField(default=False)
     read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
-
-    # For message replies/threads
     parent_message = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
@@ -585,7 +595,6 @@ class PrivateMessage(models.Model):
         ('file', 'File'),
         ('deleted', 'Deleted'),
     )
-
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     content = models.TextField(blank=True)
@@ -595,8 +604,6 @@ class PrivateMessage(models.Model):
     edited = models.DateTimeField(null=True, blank=True)
     deleted = models.BooleanField(default=False)
     read = models.BooleanField(default=False)
-
-    # For message replies
     parent_message = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
@@ -621,7 +628,7 @@ class PrivateMessage(models.Model):
     def mark_as_edited(self):
         self.edited = timezone.now()
         self.save()
-# Chat Message Model
+
 class ChatMessage(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sent_messages', verbose_name="Sender")
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_received_messages', verbose_name="Receiver")
@@ -636,9 +643,8 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"From {self.sender} to {self.receiver} - {self.timestamp}"
-      
-#***************Evaluations and feedback********************
 
+# Evaluations and Feedback
 class Task(models.Model):
     status = models.CharField(
         max_length=20,
@@ -651,13 +657,13 @@ class Task(models.Model):
     supervisor = models.ForeignKey('Supervisor', on_delete=models.CASCADE, related_name='tasks')
     work_date = models.DateField(help_text="Date the task was performed.")
     description = models.TextField(help_text="Task details.")
-    completed = models.BooleanField(default=False) 
+    completed = models.BooleanField(default=False)
     supervisor_feedback = models.TextField(blank=True, null=True, help_text="Feedback from supervisor.")
     advisor_feedback = models.TextField(blank=True, null=True, help_text="Feedback from advisor.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def can_edit_or_delete(self):
-        return now() <= self.created_at + timedelta(hours=24)
+        return timezone.now() <= self.created_at + timedelta(hours=24)
 
     def __str__(self):
         return f"Task for {self.student.user.get_full_name()} on {self.work_date}"
@@ -677,7 +683,7 @@ class Task(models.Model):
 
 class WorkSchedule(models.Model):
     student = models.ForeignKey(
-        'Student', 
+        'Student',
         on_delete=models.CASCADE,
         related_name='work_schedules'
     )
@@ -691,7 +697,7 @@ class WorkSchedule(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(7)],
         help_text="Number of required task submissions per week"
     )
-    created_at = models.DateTimeField(auto_now_add=True,blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -706,27 +712,20 @@ class WorkSchedule(models.Model):
             raise ValidationError("At least 1 workday per week is required")
 
     def current_week(self):
-        """Calculate current week based on creation date"""
         today = timezone.now().date()
         days_since_start = (today - self.created_at.date()).days
         return (days_since_start // 7) + 1
+
     def get_week_range(self, week_number):
-        """
-        Get first and last task for a given week number
-        Returns tuple (first_task_date, last_task_date)
-        """
         tasks = self.student.task_set.order_by('work_date')
         start_idx = (week_number - 1) * self.workdays_per_week
         end_idx = start_idx + self.workdays_per_week
-        
         week_tasks = tasks[start_idx:end_idx]
         if not week_tasks:
             return (None, None)
-            
         return (week_tasks.first().work_date, week_tasks.last().work_date)
 
     def is_week_complete(self, week_number):
-        """Check if the required reports for this week are submitted"""
         reports = DailyWorkReport.objects.filter(
             student=self.student,
             week_number=week_number,
@@ -741,7 +740,6 @@ class DailyWorkReport(models.Model):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
-    
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='daily_reports')
     work_date = models.DateField()
     week_number = models.PositiveIntegerField(editable=False)
@@ -754,19 +752,17 @@ class DailyWorkReport(models.Model):
     class Meta:
         unique_together = ('student', 'work_date')
         ordering = ['-work_date']
-    
+
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.work_date}"
 
     def save(self, *args, **kwargs):
-        # Auto-calculate week number
         schedule = WorkSchedule.objects.get(student=self.student, is_active=True)
-        days_since_start = (self.work_date - schedule.start_date).days
+        days_since_start = (self.work_date - schedule.created_at.date()).days
         self.week_number = (days_since_start // 7) + 1
         super().save(*args, **kwargs)
 
     def is_workday(self):
-        """Check if report date is a valid workday"""
         schedule = WorkSchedule.objects.get(student=self.student, is_active=True)
         return self.work_date.weekday() in schedule.assigned_days
 
@@ -777,7 +773,7 @@ class WeeklyFeedback(models.Model):
     feedback = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    week_start_date = models.DateField(blank=True, null=True)  # Ensure this field is defined
+    week_start_date = models.DateField(blank=True, null=True)
 
     class Meta:
         unique_together = ('student', 'week_number')
@@ -787,7 +783,6 @@ class WeeklyFeedback(models.Model):
         return f"Week {self.week_number} Feedback for {self.student.user.get_full_name()}"
 
     def is_complete(self):
-        """Check if all daily reports for week are submitted"""
         reports = DailyWorkReport.objects.filter(
             student=self.student,
             week_number=self.week_number,
@@ -795,14 +790,13 @@ class WeeklyFeedback(models.Model):
         )
         schedule = WorkSchedule.objects.get(student=self.student, is_active=True)
         return reports.count() >= schedule.workdays_per_week
-# models.py
+
 class MonthlyEvaluation(models.Model):
     CATEGORY_LIMITS = {
         'general': 25,
         'personal': 25,
         'professional': 50
     }
-
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='evaluations')
     supervisor = models.ForeignKey(Supervisor, on_delete=models.CASCADE)
     month_number = models.PositiveIntegerField(blank=True, null=True)
@@ -810,27 +804,21 @@ class MonthlyEvaluation(models.Model):
     total_score = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    # General Performance (25%)
     punctuality = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     reliability = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     independence = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     communication = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     professionalism = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
-
-    # Personal Performance (25%)
     speed_of_work = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     accuracy = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     engagement = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     need_for_work = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     cooperation = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
-
-    # Professional Skills (50%)
     technical_skills = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     organizational_skills = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     project_support = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
     responsibility = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(5)], default=0)
-    team_quality = models.PositiveSmallIntegerField(validators=[MinValueValidator(0)], default=0)  # Removed MaxValueValidator(5)
+    team_quality = models.PositiveSmallIntegerField(validators=[MinValueValidator(0)], default=0)
 
     def calculate_total_score(self):
         return sum([
@@ -867,15 +855,11 @@ class MonthlyEvaluation(models.Model):
 class Evaluation(models.Model):
     internship = models.ForeignKey(Internship, on_delete=models.CASCADE)
     supervisor = models.ForeignKey(Supervisor, on_delete=models.CASCADE)
-    
-    # Section A: Job Performance (1-5 scale)
     knowledge = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     problem_solving = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     quality = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     punctuality = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     initiative = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
-    
-    # Section B: Soft Skills (1-5 scale)
     dedication = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     cooperation = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     discipline = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
@@ -883,15 +867,11 @@ class Evaluation(models.Model):
     socialization = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     communication = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
     decision_making = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=1)
-    
-    # Section C: Comments & Job Offer
     potential_comments = models.TextField()
     job_offer = models.BooleanField(default=False)
-    
-    # Calculated fields
-    total_mark = models.PositiveSmallIntegerField(editable=False)  # Auto-calculated (sum of all scores)
-    overall_performance = models.FloatField(editable=False)  # (total_mark/60)*20
-# models.py
+    total_mark = models.PositiveSmallIntegerField(editable=False)
+    overall_performance = models.FloatField(editable=False)
+
 class CompanyRating(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -908,4 +888,3 @@ class CompanyRating(models.Model):
 
     def __str__(self):
         return f"{self.student} rated {self.company} - {self.rating}/5"
-#**************chatboot******************
