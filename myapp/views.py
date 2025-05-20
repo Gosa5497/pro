@@ -38,7 +38,81 @@ def home(request):
     if request.user.is_authenticated:
         return redirect('dashboard_redirect')
     return render(request, 'home.html')
-<<<<<<< HEAD
+# 🧠 Django view for chatbot
+def chatbot_page(request):
+    return render(request, 'chatbot.html')
+# myapp/views.py
+
+import json
+import requests
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt  # Only if you don’t have CSRF protection on this endpoint
+def get_chatbot_session(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid HTTP method"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        # TODO: Replace with your auth system info if available
+        name = data.get("name", "aastu internship")
+        email = data.get("email", "gosayewoyo5@gmail.com")
+
+        API_KEY = "8b5bd9b2b09a88c650af07f9ad55ddd8ec4307291ed841d465e62bb019e3fa77"
+        CHATBOT_ID = "c5a86b06ff9659387653984b5528cd54"
+
+        response = requests.post(
+            "https://www.askyourdatabase.com/api/chatbot/v2/session",
+            headers={
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "en",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {API_KEY}",
+            },
+            json={
+                "chatbotid": CHATBOT_ID,
+                "name": name,
+                "email": email,
+            },
+        )
+
+        if response.status_code == 200:
+            session_url = response.json().get("url")
+            if session_url:
+                return JsonResponse({"url": session_url})
+            else:
+                return JsonResponse({"error": "No URL returned by API"}, status=500)
+        else:
+            return JsonResponse({
+                "error": "Failed to create chatbot session",
+                "status_code": response.status_code,
+                "response": response.text,
+            }, status=response.status_code)
+
+    except Exception as e:
+        return JsonResponse({"error": "Unexpected error", "details": str(e)}, status=500)
+
+
+import jwt
+from datetime import datetime, timedelta
+from django.conf import settings
+
+def internship_list(request):
+    def generate_chat_token(user):
+        payload = {
+            'user_id': user.id,
+            'exp': datetime.utcnow() + timedelta(hours=1),
+            'iat': datetime.utcnow()
+        }
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+    
+    context = {
+        'internships': Internship.objects.all(),
+        'chat_token': generate_chat_token(request.user)
+    }
+    return render(request, 'internships.html', context)
 # views.py
 from django.views.generic import DetailView
 from .models import Company, CompanyRating
@@ -68,8 +142,6 @@ class CompanyDetailView(DetailView):
             ).exists()
         
         return context
-=======
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 @login_required
 @user_passes_test(lambda u: u.is_department_head)
 def advisor_assigned_student_departmenet_head(request, advisor_id):
@@ -116,23 +188,15 @@ def assign_advisor(request, student_user_id):
 @login_required
 def communication_page(request):
     return render(request, 'departement_head/communication_page.html')
-
-<<<<<<< HEAD
-=======
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import Internship, Application
-
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
+from .utils.token_utils import generate_chat_token
 @login_required
 def existing_internships(request):
+    user = request.user
     internships = Internship.objects.all()
+    token = generate_chat_token(user)
     applied_internship_ids = []
-<<<<<<< HEAD
     locations = Company.objects.values_list('location', flat=True).distinct()
     internship_titles = Internship.objects.values_list('title', flat=True).distinct()  # NEW LINE
-=======
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 
     if hasattr(request.user, 'student'):
         student = request.user.student
@@ -142,12 +206,10 @@ def existing_internships(request):
 
     context = {
         'internships': internships,
+        'chatbot_token': token,
         'applied_internship_ids': applied_internship_ids,
-<<<<<<< HEAD
         'locations': locations,
         'internship_titles': internship_titles  # ADD THIS TO CONTEXT
-=======
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
     }
     return render(request, 'company/existing_internships.html', context)
 
@@ -189,26 +251,6 @@ def internship_detail(request, pk):
         'is_student': is_student,
         'has_applied': has_applied,
         'base_template': base_template,
-    }
-    return render(request, 'company/internship_detail.html', context)
-
-
-@login_required
-def internship_detail(request, pk):
-    internship = get_object_or_404(Internship, pk=pk)
-
-    # Determine if the logged-in user is a student
-    is_student = hasattr(request.user, 'student')
-    has_applied = False
-
-    if is_student:
-        student = request.user.student
-        has_applied = Application.objects.filter(internship=internship, student=student).exists()
-
-    context = {
-        'internship': internship,
-        'is_student': is_student,
-        'has_applied': has_applied,
     }
     return render(request, 'company/internship_detail.html', context)
 
@@ -297,8 +339,6 @@ def toggle_internship_status(request, internship_id):
     messages.success(request, f'Internship status updated to {"Open" if internship.is_open else "Closed"}.')
     return redirect('view_internships')
 
-<<<<<<< HEAD
-=======
 @login_required
 def apply_internship(request, internship_id):
     internship = get_object_or_404(Internship, id=internship_id)
@@ -340,80 +380,6 @@ def apply_internship(request, internship_id):
     else:
         form = ApplicationForm()
 
-    context = {
-        'internship': internship,
-        'form': form,
-        'matched_qualifications': matched_qualifications,
-        'missing_qualifications': missing_qualifications,
-    }
-    return render(request, 'students/apply_internship.html', context)
-
-
-def applicant_list(request, internship_id):
-    internship = get_object_or_404(Internship, id=internship_id)
-    applications = Application.objects.filter(internship=internship).select_related('student')
-
-    # Prepare a list of applicants with their details
-    applicants = []
-    for application in applications:
-        student = application.student
-        applicant_data = {
-            'name': f"{student.user.first_name} {student.user.last_name}",
-            'email': student.user.email,
-            'id': application.id,  # Application ID
-            'status': application.status,  # Application status
-        }
-        applicants.append(applicant_data)
-
-    context = {
-        'internship': internship,
-        'applicants': applicants,
-    }
-    return render(request, 'company/applicant_list.html', context)
-
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
-@login_required
-def apply_internship(request, internship_id):
-    internship = get_object_or_404(Internship, id=internship_id)
-
-    # Ensure only students can apply
-    if not hasattr(request.user, 'student'):
-        messages.error(request, "Only students can apply for internships.")
-        return redirect('existing_internships')
-
-    student = request.user.student
-
-    # Check if already applied
-    if Application.objects.filter(internship=internship, student=student).exists():
-        messages.error(request, "You have already applied to this internship.")
-        return redirect('existing_internships')
-
-    # Check qualification match
-    student_info = f"{student.major}, Year {student.year}"
-    matched_qualifications = []
-    missing_qualifications = []
-
-    for q in internship.required_qualifications:
-        if q.lower() in student_info.lower():
-            matched_qualifications.append(q)
-        else:
-            missing_qualifications.append(q)
-
-    if request.method == 'POST':
-        form = ApplicationForm(request.POST)
-        if form.is_valid():
-            application = form.save(commit=False)
-            application.internship = internship
-            application.student = student
-            application.save()
-            messages.success(request, "Your application has been submitted!")
-            return redirect('existing_internships')
-        else:
-            messages.error(request, "There was an error with your application.")
-    else:
-        form = ApplicationForm()
-
-<<<<<<< HEAD
     context = {
         'internship': internship,
         'form': form,
@@ -534,9 +500,6 @@ def apply_internship(request, internship_id):
         'internship': internship,
         'form': form
     })
-=======
-    return render(request, 'students/apply_internship.html', {'internship': internship, 'form': form})
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 
 @login_required
 def list_students_for_permission(request, internship_id):
@@ -1006,11 +969,7 @@ def create_supervisor_group(request):
     else:
         form = ChatGroupForm()
     
-<<<<<<< HEAD
     return render(request, 'Supervisor/create_supervisor.html', {'form': form})
-=======
-    return render(request, 'groups/create_supervisor.html', {'form': form})
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 @login_required
 @user_passes_test(lambda u: u.is_student)
 def create_student_group(request):
@@ -1878,13 +1837,10 @@ def assign_supervisor_to_students(request):
         'students': students,  # ✅ Add students to the template context
         'supervisors': supervisors,  # ✅ Add supervisors to the template context
     })
-<<<<<<< HEAD
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Supervisor, Student  # adjust if needed
-=======
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 
 @login_required
 def assigned_students(request):
@@ -1893,7 +1849,6 @@ def assigned_students(request):
         messages.error(request, "You do not have permission to access this page.")
         return redirect('supervisor_dashboard')
 
-<<<<<<< HEAD
     # Get the supervisor object
     supervisor = get_object_or_404(Supervisor, user=request.user)
 
@@ -1903,19 +1858,6 @@ def assigned_students(request):
     return render(request, 'Supervisor/assigned_students.html', {
         'advisor': supervisor,  # ✅ Matches what your template uses
         'assigned_students': assigned_students,  # ✅ Matches what your template expects
-=======
-    # Get the supervisor
-    supervisor = get_object_or_404(Supervisor, user=request.user)
-
-    # Get students assigned to this supervisor
-    students = Student.objects.filter(assigned_supervisor=supervisor)
-
-    # Debug: Print the students queryset
-    print("Students assigned to supervisor:", students)
-
-    return render(request, 'supervisor/assigned_students.html', {
-        'students': students,
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
     })
 
 # Toggle Application Status (Open/Close)
@@ -2058,10 +2000,6 @@ def is_department_head(user):
 
 def is_admin(user):
     return user.is_authenticated and user.is_superuser
-<<<<<<< HEAD
-=======
-
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
@@ -2159,10 +2097,7 @@ def admin_dashboard(request):
         'companies': companies,
         'active_section': active_section,
         'current_filter': user_filter,
-<<<<<<< HEAD
         'total_'
-=======
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
         
         # Role-specific counts
         'student_count': student_count,
@@ -2225,7 +2160,6 @@ def company_management(request):
 
     # Companies offering internships that received applications from these students
     companies = Company.objects.all()
-<<<<<<< HEAD
     company_names = []
     internships_offered = []
     applications_received = []
@@ -2243,15 +2177,6 @@ def company_management(request):
         company_names.append(company.name)
         internships_offered.append(internships.count())
         applications_received.append(apps.count())
-=======
-    company_names = [company.name for company in companies]
-    internships_offered = [Internship.objects.filter(company=company).count() for company in companies]
-    applications_received = [
-    Application.objects.filter(internship__company=company).count() for company in companies
-]
-
-    company_feedbacks = CompanyFeedback.objects.all()
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
 
     context = {
         'companies': companies,
@@ -2284,11 +2209,7 @@ def edit_company(request, company_id):
         if form.is_valid():
             form.save()
             messages.success(request, 'Company updated successfully!')
-<<<<<<< HEAD
             return redirect('company_admin_dashboard')
-=======
-            return redirect('company_management')
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
         else:
             print("Form Errors:", form.errors)  # Debugging: Print errors to console/log
     else:
@@ -2311,7 +2232,6 @@ from django.db.models import Count, Q
 @user_passes_test(is_department_head)
 def view_company(request, company_id):
     company = get_object_or_404(Company, id=company_id)
-<<<<<<< HEAD
     department = request.user.departmenthead.department  # assuming dept head is linked to department
 
     # Filter internships for the company
@@ -2325,14 +2245,6 @@ def view_company(request, company_id):
         )
     )
 
-=======
-    
-    # Annotate internships with the count of approved applications
-    internships = Internship.objects.filter(company=company).annotate(
-        approved_applications=Count('application', filter=Q(application__status='Approved'))
-    )
-    
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
     feedbacks = CompanyFeedback.objects.filter(company=company)
 
     context = {
@@ -2769,9 +2681,54 @@ def student_dashboard(request):
         
     })
 
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Avg
+from django.shortcuts import render, get_object_or_404
+
+from .models import DepartmentHead, Student, Advisor, Internship
+
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Avg
+from django.shortcuts import render, get_object_or_404
+
+from .models import DepartmentHead, Student, Advisor, Internship, Company
+
 @login_required
 def department_head_dashboard(request):
-    return render(request, 'departement_head/department_head_dashboard.html', {'user': request.user})
+    user = request.user
+    department_head = get_object_or_404(DepartmentHead, user=user)
+    department = department_head.department
+
+    # Count students and advisors in this department
+    student_count = Student.objects.filter(department=department).count()
+    advisor_count = Advisor.objects.filter(department=department).count()
+
+    # ✅ Total internships and companies across the system (not filtered)
+    total_internships = Internship.objects.count()
+    total_companies = Company.objects.count()
+
+    # Average students per advisor in this department
+    avg_students_per_advisor = Advisor.objects.filter(department=department).annotate(
+        num_students=Count('student')
+    ).aggregate(avg=Avg('num_students'))['avg'] or 0
+
+    # List of students and advisors in this department
+    students = Student.objects.filter(department=department).select_related('user')
+    advisors = Advisor.objects.filter(department=department).select_related('user')
+
+    context = {
+        'user': user,
+        'department': department,
+        'student_count': student_count,
+        'advisor_count': advisor_count,
+        'total_internships': total_internships,      # ✅ System-wide total
+        'total_companies': total_companies,         # ✅ System-wide total
+        'avg_students_per_advisor': avg_students_per_advisor,
+        'students': students,
+        'advisors': advisors,
+    }
+
+    return render(request, 'departement_head/department_head_dashboard.html', context)
 
 @login_required
 def industry_supervisor_dashboard(request):
@@ -3143,29 +3100,35 @@ def submit_task(request):
 @login_required
 @user_passes_test(lambda u: u.is_supervisor)
 def assign_workdays(request):
-    # Validate days parameter first
-    days = request.POST.get('days')
-    
-    if not days:
-        messages.error(request, "Missing required 'days' parameter")
+    if request.method == 'POST':
+        days = request.POST.get('workdays_per_week')
+        if not days:
+            messages.error(request, "Missing required 'workdays_per_week' parameter")
+            return redirect('assigned_students')
+        try:
+            days = int(days)
+        except ValueError:
+            messages.error(request, "Invalid value for workdays")
+            return redirect('assigned_students')
+
+        supervisor = request.user.supervisor
+        assigned_students = Student.objects.filter(assigned_supervisor=supervisor)
+
+        updated = 0
+        for student in assigned_students:
+            schedule, created = WorkSchedule.objects.get_or_create(
+                student=student,
+                defaults={'supervisor': supervisor}
+            )
+            schedule.supervisor = supervisor  # Ensure supervisor is set
+            schedule.workdays_per_week = days
+            schedule.save()
+            updated += 1
+
+        messages.success(request, f"Work schedule updated for {updated} students")
         return redirect('assigned_students')
 
-    try:
-        days = int(days)
-    except ValueError:
-        messages.error(request, "Invalid value for workdays")
-        return redirect('assigned_students')
-
-    supervisor = request.user.supervisor
-    
-    # Update with validated value
-    updated = WorkSchedule.objects.filter(
-        supervisor=supervisor
-    ).update(workdays_per_week=days)
-    
-    messages.success(request, f"Work schedule updated for {updated} students")
     return redirect('assigned_students')
-
 
 @login_required
 @user_passes_test(lambda u: u.is_student)
@@ -3627,7 +3590,6 @@ def advisor_edit_feedback(request, student_id, feedback_id):
         'feedback': feedback,
         'form': form
     }
-<<<<<<< HEAD
     return render(request, 'advisors/edit_feedback.html', context)
 @login_required
 @user_passes_test(lambda u: u.is_supervisor)
@@ -3781,6 +3743,3 @@ def get_recommendations(request):
             return render(request, 'error.html', {'message': str(e)})
     
     return redirect('existing_internships')
-=======
-    return render(request, 'advisors/edit_feedback.html', context)
->>>>>>> 6b73b6cb3f6179780a347e89f0e9836e8497adb7
