@@ -1,106 +1,288 @@
 {% extends 'students/base.html' %}
-{% block title %}View Internships{% endblock %}
-{% block content %}
-<div class="content-wrapper">
-    <section class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-12">
-                    <h1>View Internships</h1>
-                </div>
-            </div>
-        </div>
-    </section>
+{% load static %}
 
-    <section class="content">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card card-info">
-                        <div class="card-header">
-                            <h3 class="card-title">Internship List</h3>
-                        </div>
-                        <div class="card-body">
-                            {% if internships %}
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>Company</th>
-                                            <th>Location</th>
-                                            <th>Durations</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for internship in internships %}
-                                            <tr>
-                                                <td>
-                                                    <a href="{% url 'internship_detail' internship.id %}">
-                                                        {{ internship.title }}
-                                                    </a>
-                                                </td>
-                                                <td>{{ internship.company.name }}</td>
-                                                <td>{{ internship.company.location}}</td>
-                                                <td>
-                                                    {% if internship.duration %}
-                                                        {{ internship.duration }} months
-                                                    {% else %}
-                                                        N/A
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    <!-- Actions for Students -->
-                                                    {% if request.user.is_student %}
-                                                        {% if internship.is_open %}
-                                                            {% if internship.id in applied_internship_ids %}
-                                                                <span class="badge badge-info">Applied</span>
-                                                            {% else %}
-                                                                <a href="{% url 'apply_internship' internship.id %}" class="btn btn-success btn-sm">
-                                                                    <i class="fas fa-check"></i> Apply
-                                                                </a>
-                                                            {% endif %}
-                                                        {% else %}
-                                                            <span class="badge badge-secondary">Closed</span>
-                                                        {% endif %}
-                                                    {% endif %}
-                                    
-                                                    <!-- Optional: Company Admin Actions (if using same template for them) -->
-                                                    {% if request.user.is_company_admin %}
-                                                        <a href="{% url 'update_internship' internship.id %}" class="btn btn-primary btn-sm">
-                                                            <i class="fas fa-edit"></i> Update
-                                                        </a>
-                                                        <a href="{% url 'delete_internship' internship.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this internship?');">
-                                                            <i class="fas fa-trash"></i> Delete
-                                                        </a>
-                                                        <form method="post" action="{% url 'toggle_internship_status' internship.id %}" style="display: inline;">
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="btn btn-sm {% if internship.is_open %}btn-warning{% else %}btn-success{% endif %}">
-                                                                {% if internship.is_open %}
-                                                                    <i class="fas fa-lock"></i> Close
-                                                                {% else %}
-                                                                    <i class="fas fa-lock-open"></i> Open
-                                                                {% endif %}
-                                                            </button>
-                                                        </form>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                    
-                                </table>
-                            {% else %}
-                                <p class="text-center">No internships found.</p>
-                            {% endif %}
-                        </div>
+{% block title %}View Internships{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}?v=1.3">
+<style>
+    /* Chatbot Styles */
+    .chatbot-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px);
+    }
+
+    .chatbot-container.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .chatbot-iframe {
+        width: 350px;
+        height: 500px;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        background: #fff;
+        transition: transform 0.3s ease;
+    }
+
+    .chatbot-toggle {
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .chatbot-toggle:hover {
+        background: #45a049;
+        transform: translateY(-2px);
+    }
+
+    .chatbot-toggle i {
+        font-size: 1.2em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Internships</h1>
+    </div>
+
+    <div class="mb-3 d-flex justify-content-between">
+        <a href="{% url 'student_dashboard' %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+        </a>
+        <button class="chatbot-toggle" onclick="toggleChat()" id="chatbotButton">
+        <i class="fas fa-robot"></i> Get Recommendations
+        </button>
+
+    </div>
+
+    <section class="management-section">
+        <div class="section-header">
+            <div class="section-header-title">
+                <h2 class="section-title">Available Internships</h2>
+            </div>
+            {% if request.user.is_company_admin %}
+            <a href="{% url 'create_internship' %}" class="btn btn-add"><i class="fas fa-plus"></i> Add Internship</a>
+            {% endif %}
+        </div>
+        <div class="item-list-container" id="internships-list">
+            {% for internship in internships %}
+            <div class="list-item-card">
+                <div class="item-icon-wrapper">
+                    <img src="{{ internship.company.logo.url|default:'/static/images/default_avatar.png' }}"
+                         alt="{{ internship.company.name }} Logo" class="item-icon">
+                </div>
+                <div class="item-info">
+                    <div class="item-details">
+                        <span class="item-subtitle" title="Company">
+                            <i class="fas fa-building fa-fw"></i>
+                            <a href="{% url 'company_detail' internship.company.id %}">{{ internship.company.name }}</a>
+                        </span>
+                        <span class="item-subtitle" title="Location">
+                            <i class="fas fa-map-marker-alt fa-fw"></i> {{ internship.company.location|default:"N/A" }}
+                        </span>
+                        <span class="item-subtitle">
+                            Internship: <a href="{% url 'internship_detail' internship.id %}"
+                                           title="View details for {{ internship.title }}">{{ internship.title }}</a>
+                        </span>
                     </div>
                 </div>
-                <a href="{% url 'student_dashboard'%}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back
-                </a>
+                <div class="item-data item-data-status" title="Application Status">
+                    {% if internship.is_open %}
+                    <span class="status-badge status-very-high"
+                          title="Posted Internships by {{ internship.company.name }}">
+                        <i class="far fa-clock"></i> {{ internship.duration }} months
+                    </span>
+                    <span class="status-badge status-very-high">
+                        <i class="fas fa-lock-open"></i> Open
+                    </span>
+                    {% else %}
+                    <span class="status-badge status-danger">
+                        <i class="fas fa-lock"></i> Closed
+                    </span>
+                    {% endif %}
+                </div>
+                {% if request.user.is_student and internship.id in applied_internship_ids %}
+                <div class="item-data item-data-applied" title="Your Application">
+                    <span class="status-badge status-info">
+                        <i class="fas fa-check-circle"></i> Applied
+                    </span>
+                </div>
+                {% endif %}
+                <div class="item-actions">
+                    {% if request.user.is_student and internship.is_open and internship.id not in applied_internship_ids %}
+                    <a href="{% url 'apply_internship' internship.id %}"
+                       class="action-btn apply-btn status-badge status-very-low"
+                       title="Apply for {{ internship.title }}">
+                        <i class="fas fa-file-signature"></i> Apply
+                    </a>
+                    {% endif %}
+                    
+                    {% if request.user.is_company_admin %}
+                    <a href="{% url 'update_internship' internship.id %}" class="action-btn edit-btn"
+                       title="Edit {{ internship.title }}">
+                        <i class="fas fa-pencil-alt"></i>
+                    </a>
+                    <form method="post" action="{% url 'toggle_internship_status' internship.id %}"
+                          class="delete-form d-inline-block"
+                          title="{% if internship.is_open %}Close applications{% else %}Open applications{% endif %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="action-btn toggle-btn {% if internship.is_open %}text-warning{% else %}text-success{% endif %}">
+                            {% if internship.is_open %}
+                            <i class="fas fa-lock"></i>
+                            {% else %}
+                            <i class="fas fa-lock-open"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+                    <form action="{% url 'delete_internship' internship.id %}" method="post"
+                          class="delete-form d-inline-block"
+                          onsubmit="return confirm('Are you sure you want to delete internship: {{ internship.title }}?');">
+                        {% csrf_token %}
+                        <button type="submit" class="action-btn delete-btn" title="Delete {{ internship.title }}">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <a href="{% url 'internship_detail' internship.id %}" class="action-btn view-btn"
+                       title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </div>
             </div>
+            {% empty %}
+            <p class="no-data">No internships found matching the current criteria.</p>
+            {% endfor %}
         </div>
     </section>
 </div>
+
+<!-- Chatbot Embed -->
+<div class="chatbot-container" id="chatbotContainer">
+    <iframe id="chatbotIframe" 
+        class="chatbot-iframe"
+        style="display:none; width: 100%; height: 600px; border: none;"></iframe>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let chatOpen = false;
+    let chatbotUrlLoaded = false;
+
+    function toggleChat() {
+        const container = document.getElementById('chatbotContainer');
+        const button = document.getElementById('chatbotButton');
+        const iframe = document.getElementById('chatbotIframe');
+
+        chatOpen = !chatOpen;
+        container.classList.toggle('active', chatOpen);
+
+        // Update button icon and text
+        button.innerHTML = chatOpen
+            ? '<i class="fas fa-times"></i> Close Chat'
+            : '<i class="fas fa-robot"></i> Get Recommendations';
+
+        if (chatOpen && !chatbotUrlLoaded) {
+            fetchChatbotSession();
+        }
+
+        if (chatOpen) {
+            document.addEventListener('keydown', handleEscape);
+        } else {
+            document.removeEventListener('keydown', handleEscape);
+            // Optionally hide iframe when chat closes
+            if (iframe) {
+                iframe.style.display = "none";
+            }
+        }
+    }
+
+    function handleEscape(event) {
+        if (event.key === 'Escape' && chatOpen) {
+            toggleChat();
+        }
+    }
+
+    function fetchChatbotSession() {
+        fetch("{% url 'chatbot_session' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({
+                name: "{{ request.user.get_full_name|default:'Guest User' }}",
+                email: "{{ request.user.email|default:'guest@example.com' }}"
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.url) {
+                const iframe = document.getElementById("chatbotIframe");
+                if (iframe) {
+                    iframe.src = data.url;
+                    iframe.style.display = "block";
+                    iframe.title = "Chatbot Window";
+                    chatbotUrlLoaded = true;
+                } else {
+                    console.error("Chatbot iframe element not found.");
+                    alert("Chatbot failed to load.");
+                    toggleChat(); // Close chat due to error
+                }
+            } else {
+                alert("No chatbot URL returned.");
+                toggleChat(); // Close chatbot if no URL
+            }
+        })
+        .catch(error => {
+            console.error("Chatbot error:", error);
+            alert("Failed to load chatbot. Try again later.");
+            toggleChat(); // Close chatbot on error
+        });
+    }
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    // Close chatbot if clicking outside chat container and button
+    document.addEventListener('click', (e) => {
+        const chatContainer = document.getElementById('chatbotContainer');
+        const button = document.getElementById('chatbotButton');
+
+        if (chatOpen &&
+            chatContainer && button &&
+            !chatContainer.contains(e.target) &&
+            !button.contains(e.target)) {
+            toggleChat();
+        }
+    });
+</script>
+
+
 {% endblock %}
