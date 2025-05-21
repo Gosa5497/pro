@@ -22,11 +22,16 @@ class BaseRegistrationForm(UserCreationForm):
     last_name = forms.CharField(max_length=30)
     phone = forms.CharField(max_length=20)
     profile_image = forms.ImageField(required=False)
-
+    GENDER_CHOICES = (
+        ('M', 'Male'),
+        ('F', 'Female'),
+        
+    )
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True, verbose_name="Gender")
     class Meta:
         model = User
         fields = (
-            'username', 'email', 'first_name', 'last_name', 
+            'username', 'gender', 'email', 'first_name', 'last_name', 
             'phone', 'password1', 'password2', 'profile_image'
         )
 
@@ -43,8 +48,17 @@ class BaseRegistrationForm(UserCreationForm):
 
         return user
 
-
 class SuperadminStudentForm(BaseRegistrationForm):
+    student_id = forms.CharField(
+        max_length=20,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Za-z0-9/]+$',
+                message='Student ID must contain only letters, numbers, and forward slashes (/).'
+            )
+        ],
+        help_text="Example: ETS/0558/13"
+    )
     department = forms.ModelChoiceField(
         queryset=Department.objects.all(),
         required=True
@@ -52,6 +66,30 @@ class SuperadminStudentForm(BaseRegistrationForm):
     major = forms.CharField(max_length=100)
     year = forms.IntegerField()
     resume = forms.FileField(required=False)
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.is_student = True
+        user.set_password(self.cleaned_data['password1'])
+
+        if commit:
+            user.save()
+            Student.objects.create(
+                user=user,
+                student_id=self.cleaned_data['student_id'],
+                department=self.cleaned_data['department'],
+                major=self.cleaned_data['major'],
+                year=self.cleaned_data['year'],
+                resume=self.cleaned_data['resume']
+            )
+        return user
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.all(),
+        required=True
+    )
+    major = forms.CharField(max_length=100)
+    year = forms.IntegerField()
+    # resume = forms.FileField(required=False)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -74,7 +112,7 @@ class SuperadminStudentForm(BaseRegistrationForm):
 class DepartmentHeadStudentForm(BaseRegistrationForm):
     major = forms.CharField(max_length=100)
     year = forms.IntegerField()
-    resume = forms.FileField(required=False)
+    resume = forms.FileField(required=False)  # Make resume optional
 
     def __init__(self, *args, **kwargs):
         self.department = kwargs.pop('department', None)
@@ -89,17 +127,18 @@ class DepartmentHeadStudentForm(BaseRegistrationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.is_student = True
-        # ✅ Corrected to use password1 (UserCreationForm default)
         user.set_password(self.cleaned_data['password1'])
 
         if commit:
             user.save()
+            # Safely get resume, or None if not provided
+            resume_file = self.cleaned_data.get('resume', None)
             Student.objects.create(
                 user=user,
                 department=self.department,
                 major=self.cleaned_data['major'],
                 year=self.cleaned_data['year'],
-                resume=self.cleaned_data['resume']
+                resume=resume_file  # assign None if not uploaded
             )
         return user
 
@@ -144,10 +183,9 @@ class DepartmentHeadAdvisorForm(BaseRegistrationForm):
                 department=self.department
             )
         return user
-
 class DepartmentHeadRegistrationForm(BaseRegistrationForm):
     department = forms.ModelChoiceField(
-        queryset=Department.objects.all(),
+        queryset=Department.objects.none(),  # default empty; will set in __init__
         required=True,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
@@ -160,24 +198,39 @@ class DepartmentHeadRegistrationForm(BaseRegistrationForm):
     class Meta(BaseRegistrationForm.Meta):
         fields = BaseRegistrationForm.Meta.fields + ('position', 'department')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only departments with no assigned DepartmentHead
+        assigned_departments = DepartmentHead.objects.values_list('department_id', flat=True)
+        self.fields['department'].queryset = Department.objects.exclude(id__in=assigned_departments)
+
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.is_department_head = True  # Set the user role
+        user.is_department_head = True
         if commit:
             user.save()
-            # Create the DepartmentHead and associate it with the user
             DepartmentHead.objects.create(
                 user=user,
                 department=self.cleaned_data['department'],
                 position=self.cleaned_data['position']
             )
         return user
+
 class CompanyAdminRegistrationForm(BaseRegistrationForm):
-    company = forms.ModelChoiceField(queryset=Company.objects.all())
-    
+    company = forms.ModelChoiceField(
+        queryset=Company.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
+    )
+
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2', 'company']
+
+    def __init__(self, *args, **kwargs):  # <-- FIXED: double underscores
+        super().__init__(*args, **kwargs)
+        assigned_companies = CompanyAdmin.objects.values_list('company_id', flat=True)
+        self.fields['company'].queryset = Company.objects.exclude(id__in=assigned_companies)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -187,6 +240,7 @@ class CompanyAdminRegistrationForm(BaseRegistrationForm):
             company = self.cleaned_data['company']
             CompanyAdmin.objects.create(user=user, company=company)
         return user
+
 class SuperadminSupervisorForm(BaseRegistrationForm):
     company = forms.ModelChoiceField(queryset=Company.objects.all(), required=True)
     position = forms.CharField(max_length=100)
@@ -242,42 +296,183 @@ class DepartmentRegistrationForm(forms.ModelForm):
         if commit:
             department.save()
         return department
-    
-#**********CRUD Forms************ 
-class UserUpdateForm(forms.ModelForm):
+
+#=========================update form =========================
+User = get_user_model()
+
+from django.contrib.auth.hashers import make_password
+
+class BaseUpdateForm(forms.ModelForm):
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(max_length=30)
+    last_name = forms.CharField(max_length=30)
+    phone = forms.CharField(max_length=20)
+    profile_image = forms.ImageField(required=False)
+
+    # Add password field for updating password
+    password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(render_value=True),
+        help_text="Leave blank if you don't want to change the password."
+    )
+
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone', 'profile_image']
-class DepartmentHeadUpdateForm(forms.ModelForm):
-    user = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_department_head=False),
+        fields = ['username', 'password', 'email', 'first_name', 'last_name', 'phone', 'profile_image']
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+
+        # Only change password if it's provided
+        if password:
+            user.password = make_password(password)
+
+        if commit:
+            user.save()
+        return user
+
+class SuperadminStudentUpdateForm(BaseUpdateForm):
+    major = forms.CharField(max_length=100)
+    year = forms.IntegerField()
+    resume = forms.FileField(required=False)
+    department = forms.ModelChoiceField(queryset=Department.objects.all(), required=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.instance, 'student'):
+            self.fields['major'].initial = self.instance.student.major
+            self.fields['year'].initial = self.instance.student.year
+            self.fields['resume'].initial = self.instance.student.resume
+            self.fields['department'].initial = self.instance.student.department
+
+    def save(self, commit=True):
+        user = super().save(commit)
+        student = getattr(user, 'student', None)
+        if student:
+            student.major = self.cleaned_data['major']
+            student.year = self.cleaned_data['year']
+            student.resume = self.cleaned_data.get('resume', student.resume)
+            student.department = self.cleaned_data['department']
+            student.save()
+        return user
+class SuperadminAdvisorUpdateForm(BaseUpdateForm):
+    department = forms.ModelChoiceField(queryset=Department.objects.all(), required=True)
+    office_location = forms.CharField(max_length=255)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.instance, 'advisor'):
+            self.fields['department'].initial = self.instance.advisor.department
+            self.fields['office_location'].initial = self.instance.advisor.office_location
+
+    def save(self, commit=True):
+        user = super().save(commit)
+        advisor = getattr(user, 'advisor', None)
+        if advisor:
+            advisor.department = self.cleaned_data['department']
+            advisor.office_location = self.cleaned_data['office_location']
+            advisor.save()
+        return user
+class SuperadminSupervisorUpdateForm(BaseUpdateForm):
+    company = forms.ModelChoiceField(queryset=Company.objects.all(), required=True)
+    position = forms.CharField(max_length=100)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.instance, 'supervisor'):
+            self.fields['company'].initial = self.instance.supervisor.company
+            self.fields['position'].initial = self.instance.supervisor.position
+
+    def save(self, commit=True):
+        user = super().save(commit)
+        supervisor = getattr(user, 'supervisor', None)
+        if supervisor:
+            supervisor.company = self.cleaned_data['company']
+            supervisor.position = self.cleaned_data['position']
+            supervisor.save()
+        return user
+class DepartmentHeadUpdateForm(BaseUpdateForm):
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.none(),
         required=True,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     position = forms.CharField(
         max_length=100,
         required=True,
-        widget=forms.TextInput(attrs={'value': 'Department Head', 'readonly': 'readonly'})
+        widget=forms.TextInput(attrs={'readonly': 'readonly'})
     )
 
-    class Meta:
-        model = DepartmentHead
-        fields = ['user', 'position']
+    class Meta(BaseUpdateForm.Meta):
+        # Include all base fields + department and position
+        fields = BaseUpdateForm.Meta.fields + ['department', 'position']
 
-# ********* Model Forms******************
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        assigned_departments = DepartmentHead.objects.exclude(user=self.instance).values_list('department_id', flat=True)
+        self.fields['department'].queryset = Department.objects.exclude(id__in=assigned_departments)
+
+        if hasattr(self.instance, 'departmenthead'):
+            self.fields['department'].initial = self.instance.departmenthead.department
+            self.fields['position'].initial = self.instance.departmenthead.position
+
+    def save(self, commit=True):
+        user = super().save(commit)
+        department_head = getattr(user, 'departmenthead', None)
+        if department_head:
+            department_head.department = self.cleaned_data['department']
+            department_head.position = self.cleaned_data['position']
+            department_head.save()
+        return user
+class CompanyAdminUpdateForm(BaseUpdateForm):
+    company = forms.ModelChoiceField(
+        queryset=Company.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Exclude companies assigned to other company admins except this user's company
+        assigned_companies = CompanyAdmin.objects.exclude(user=self.instance).values_list('company_id', flat=True)
+        self.fields['company'].queryset = Company.objects.exclude(id__in=assigned_companies)
+
+        if hasattr(self.instance, 'companyadmin'):
+            self.fields['company'].initial = self.instance.companyadmin.company
+
+    def save(self, commit=True):
+        user = super().save(commit)
+        company_admin = getattr(user, 'companyadmin', None)
+        if company_admin:
+            company_admin.company = self.cleaned_data['company']
+            company_admin.save()
+        return user
+#**********Update Forms************=========
+
+
+
+
+    
+#**********CRUD Forms************ 
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone', 'profile_image']
 
 class DepartmentForm(forms.ModelForm):
     class Meta:
         model = Department
         fields = ['name', 'description']
-class ApplicationForm(forms.ModelForm):
-    class Meta:
-        model = Application
-        fields = '__all__'
-        widgets = {
-            'student': forms.Select(attrs={'class': 'form-select'}),
-            'company': forms.Select(attrs={'class': 'form-select'}),
-        }
+# class ApplicationForm(forms.ModelForm):
+#     class Meta:
+#         model = Application
+#         fields = '__all__'
+#         widgets = {
+#             'student': forms.Select(attrs={'class': 'form-select'}),
+#             'company': forms.Select(attrs={'class': 'form-select'}),
+#         }
 
 
 class TaskForm(forms.ModelForm):
@@ -371,41 +566,108 @@ class StudentForm(forms.ModelForm):
                 )
             else:
                 self.fields['assign_advisor'].disabled = True
+
+
+
+def make_field_name(prefix, text, index):
+    # Keep it simple and unique using index
+    return f"{prefix}_qual_{index}"
+
+
+from django import forms
+from .models import Application
+from .utils import make_field_name  # your own helper
+
 class ApplicationForm(forms.ModelForm):
+    resume = forms.FileField(
+        required=True,
+        label="Resume/CV",
+        help_text="Upload your latest Resume or CV (PDF, DOC, DOCX format)."
+    )
+    cover_letter = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'rows': 5,
+            'class': 'form-control',
+            'placeholder': 'Explain why you are a good fit for this internship...'
+        }),
+        label='Cover Letter',
+        help_text='Highlight relevant skills and experience (max 500 words approx).',
+        required=False
+    )
+
     class Meta:
         model = Application
-        fields = ['cover_letter']
-        widgets = {
-            'cover_letter': forms.Textarea(attrs={
-                'rows': 5,
-                'class': 'form-control',
-                'placeholder': 'Explain why you are a good fit for this internship...'
-            }),
-        }
-        labels = {
-            'cover_letter': 'Application Letter'
-        }
-        help_texts = {
-            'cover_letter': 'Highlight your relevant skills and experience (500-1000 words)'
-        }
+        fields = ['cover_letter', 'resume']
 
     def __init__(self, *args, **kwargs):
         self.internship = kwargs.pop('internship', None)
         self.student = kwargs.pop('student', None)
         super().__init__(*args, **kwargs)
+        self.dynamic_fields = {}
 
-    def clean(self):
-        cleaned_data = super().clean()
-        
-        # Check if student meets minimum requirements
-        missing_requirements = self.internship.get_missing_requirements(self.student)
-        if missing_requirements:
-            raise forms.ValidationError(
-                f"You don't meet the following requirements: {', '.join(missing_requirements)}. "
-                "Please update your profile or select a different internship."
-            )
-        
-        return cleaned_data
+        if self.internship:
+            # Required qualifications
+            required_quals = self.internship.required_qualifications or ''
+            if isinstance(required_quals, str):
+                required_quals_iterable = [q.strip() for q in required_quals.split(',') if q.strip()]
+            elif isinstance(required_quals, list):
+                required_quals_iterable = [q.strip() for q in required_quals if isinstance(q, str) and q.strip()]
+            else:
+                required_quals_iterable = []
+
+            for i, req_text in enumerate(required_quals_iterable):
+                field_name = make_field_name('req', req_text, i)
+                self.fields[field_name] = forms.CharField(
+                    label=req_text,
+                    required=True,
+                    widget=forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+                    help_text="Please provide details or confirmation regarding this requirement."
+                )
+                self.dynamic_fields[field_name] = req_text
+
+            # Optional qualifications
+            optional_quals = self.internship.optional_qualifications or ''
+            if isinstance(optional_quals, str):
+                optional_quals_iterable = [q.strip() for q in optional_quals.split(',') if q.strip()]
+            elif isinstance(optional_quals, list):
+                optional_quals_iterable = [q.strip() for q in optional_quals if isinstance(q, str) and q.strip()]
+            else:
+                optional_quals_iterable = []
+
+            for i, opt_text in enumerate(optional_quals_iterable):
+                field_name = make_field_name('opt', opt_text, i)
+                self.fields[field_name] = forms.CharField(
+                    label=f"{opt_text} (Optional)",
+                    required=False,
+                    widget=forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+                    help_text="Provide details if applicable."
+                )
+                self.dynamic_fields[field_name] = opt_text
+
+        # Add Bootstrap classes
+        self.fields['resume'].widget.attrs.update({'class': 'form-control-file'})
+        self.fields['cover_letter'].widget.attrs.update({'class': 'form-control'})
+
+    def save(self, commit=True):
+        application = super().save(commit=False)
+        responses = {}
+
+        for field_name, original_text in self.dynamic_fields.items():
+            if field_name in self.cleaned_data:
+                responses[original_text] = self.cleaned_data[field_name]
+
+        application.requirement_responses = responses
+
+        if self.internship:
+            application.internship = self.internship
+        if self.student:
+            application.student = self.student
+
+        if commit:
+            application.save()
+
+        return application
+
        
 class AdvisorForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30)
@@ -876,6 +1138,101 @@ class MonthlyEvaluationForm(forms.ModelForm):
             category: sum(data.get(field, 0) for field in fields)
             for category, fields in self.CATEGORY_FIELDS.items()
         }
+    
+class FinalEvaluationForm(forms.ModelForm):
+    class Meta:
+        model = Evaluation
+        fields = '__all__'
+        widgets = {
+            'knowledge': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'problem_solving': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'quality': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'punctuality': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'initiative': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'dedication': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'cooperation': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'discipline': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'responsibility': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'socialization': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'communication': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'decision_making': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'style': 'width: 100px;'
+            }),
+            'potential_comments': forms.Textarea(attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Enter detailed comments about student potential...'
+            }),
+            'job_offer': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+        exclude = ['internship', 'supervisor', 'total_mark', 'overall_performance']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Add custom validation if needed
+        for field in self.fields:
+            if field not in ['potential_comments', 'job_offer']:
+                value = cleaned_data.get(field)
+                if value and (value < 1 or value > 5):
+                    self.add_error(field, 'Score must be between 1 and 5')
+        return cleaned_data
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add Bootstrap classes to all fields
+        for field in self.fields:
+            if field != 'job_offer':
+                self.fields[field].widget.attrs.update({'class': 'form-control'})
+            else:
+                self.fields[field].widget.attrs.update({'class': 'form-check-input'})
 class FeedbackForm(forms.ModelForm):
     feedback = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 4}),
@@ -990,21 +1347,3 @@ class AdvisorTaskFeedbackForm(forms.Form):
         required=True,
         label="Advisor Feedback"
     )
-class FinalEvaluationForm(forms.ModelForm):
-    class Meta:
-        model = Evaluation
-        fields = '__all__'
-        widgets = {
-            'knowledge': forms.RadioSelect(choices=[(i, i) for i in range(1, 6)]),
-            # Repeat for other 1-5 scale fields
-            'potential_comments': forms.Textarea(attrs={'rows': 4}),
-        }
-# forms.py
-class CompanyRatingForm(forms.ModelForm):
-    class Meta:
-        model = CompanyRating
-        fields = ['rating', 'comments']
-        widgets = {
-            'rating': forms.NumberInput(attrs={'min': 1, 'max': 5}),
-            'comments': forms.Textarea(attrs={'rows': 4}),
-        }
