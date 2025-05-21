@@ -20,9 +20,13 @@ router.register(r'userroles', views.UserRoleViewSet)
 
 urlpatterns = [
     # Home page and login
+    path('students/<int:student_id>/final-evaluation/', views.submit_final_evaluation, name='submit_final_evaluation'),
+    path('api/chatbot-session/', views.get_chatbot_session, name='chatbot_session'),
+    path('chatbot/', views.chatbot_page, name='chatbot_page'),
     path('', views.home, name='home'),
     path('login/', views.login_view, name='login_view'),
     path('profile/', views.profile, name='profile'),
+    path("profile/<int:user_id>/", views.profile, name="view_profile"),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('dashboard/', views.dashboard_redirect, name='dashboard_redirect'),
 
