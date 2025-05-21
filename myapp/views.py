@@ -48,6 +48,7 @@ import requests
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+
 @csrf_exempt  # Only if you don’t have CSRF protection on this endpoint
 def get_chatbot_session(request):
     if request.method != "POST":
@@ -1152,23 +1153,53 @@ def manage_group(request, group_id):
         'group': group,
         'form': ChatGroupForm(instance=group)
     })
-def profile(request):
-    if request.user.is_superuser:
+
+
+from django.contrib.auth import get_user_model
+from django.shortcuts import render, get_object_or_404
+
+User = get_user_model()
+
+def profile(request, user_id=None):
+    # The user being viewed
+    if user_id:
+        user = get_object_or_404(User, id=user_id)
+    else:
+        user = request.user
+
+    # Logged-in user (for header)
+    logged_in_user = request.user
+    is_own_profile = (logged_in_user == user)
+
+    # Choose base template by role (based on logged-in user)
+    if logged_in_user.is_superuser:
         base_template = "admin/admin_base.html"
-    elif getattr(request.user, "is_department_head", False):
+    elif getattr(logged_in_user, "is_department_head", False):
         base_template = "departement_head/base.html"
-    elif getattr(request.user, "is_advisor", False):
+    elif getattr(logged_in_user, "is_advisor", False):
         base_template = "advisors/base.html"
-    elif getattr(request.user, "is_supervisor", False):
+    elif getattr(logged_in_user, "is_supervisor", False):
         base_template = "supervisor/base.html"
-    elif getattr(request.user, "is_student", False):
+    elif getattr(logged_in_user, "is_student", False):
         base_template = "students/base.html"
-    elif getattr(request.user, "is_company_admin", False):
+    elif getattr(logged_in_user, "is_company_admin", False):
         base_template = "Company_Admin/base.html"
     else:
-        base_template = "base.html"  # Default fallback template
+        base_template = "base.html"
 
-    return render(request, "departement_head/profile.html", {"base_template": base_template})
+    student_profile = getattr(user, 'student', None) if getattr(user, 'is_student', False) else None
+
+    context = {
+        "user": user,  # The profile being viewed
+        "logged_in_user": logged_in_user,  # Always the current user
+        "is_own_profile": is_own_profile,
+        "base_template": base_template,
+        "student_profile": student_profile,
+    }
+
+    return render(request, "departement_head/profile.html", context)
+
+
 
 
 @login_required
@@ -1258,39 +1289,24 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         messages.success(self.request, 'User created successfully!')
         return super().form_valid(form)
 
-class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    """
-    View for updating user information based on their role.
-    Accessible only by superadmins.
-    """
-    model = get_user_model()
+class UserUpdateView(UpdateView):
+    model = User
     template_name = 'form.html'
-    success_url = reverse_lazy('admin_dashboard')  # Redirect after update
-
-    def test_func(self):
-        """Ensure only superadmins can update users."""
-        return self.request.user.is_superuser
+    success_url = reverse_lazy('admin_dashboard')  # adjust as needed
 
     def get_form_class(self):
-        """Return the appropriate form based on the user's role."""
         user = self.get_object()
         if user.is_student:
-            return SuperadminStudentForm
+            return SuperadminStudentUpdateForm
         elif user.is_advisor:
-            return SuperadminAdvisorForm
+            return SuperadminAdvisorUpdateForm
         elif user.is_supervisor:
-            return SuperadminSupervisorForm
+            return SuperadminSupervisorUpdateForm
         elif user.is_department_head:
-            return DepartmentHeadRegistrationForm  # Updated for Department Head role
+            return DepartmentHeadUpdateForm  # Make sure you create this form similarly to others
         elif user.is_company_admin:
-            return CompanyAdminRegistrationForm  # Updated for Company Admin role
-        else:
-            return BaseRegistrationForm  # Default form for system admins, etc.
-
-    def form_valid(self, form):
-        """Perform actions before saving the form."""
-        messages.success(self.request, 'User updated successfully!')
-        return super().form_valid(form)
+            return CompanyAdminUpdateForm
+        return BaseUpdateForm
 class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
     View for deleting an existing user.
@@ -2000,11 +2016,19 @@ def is_department_head(user):
 
 def is_admin(user):
     return user.is_authenticated and user.is_superuser
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Count, Avg, OuterRef, Subquery, Value, Exists
+from django.db.models.functions import Coalesce
+from django.shortcuts import render
+from .models import Department, Student, Advisor, Supervisor, Company, Internship, Notification, User, DepartmentHead
+
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    # System statistics
     active_section = request.GET.get('section', 'admin_dashboard')
+    user_filter = request.GET.get('filter', None)
+
+    # Total counts
     total_departments = Department.objects.count()
     total_students = Student.objects.count()
     total_advisors = Advisor.objects.count()
@@ -2013,41 +2037,14 @@ def admin_dashboard(request):
     total_internships = Internship.objects.count()
     total_notifications = Notification.objects.count()
     total_users = User.objects.count()
-    recent_users = User.objects.order_by('username')[:1000]
     active_internships = Internship.objects.filter(is_open=True).count()
 
-    # Get filter parameter from URL
-    user_filter = request.GET.get('filter', None)
+    # Default recent users
+    recent_users = User.objects.order_by('username')[:1000]
 
-    # Initialize all role-specific counts
-    student_count = User.objects.filter(is_student=True).count()
-    advisor_count = User.objects.filter(is_advisor=True).count()
-    supervisor_count = User.objects.filter(is_supervisor=True).count()
-    company_admin_count = User.objects.filter(is_company_admin=True).count()
-    department_head_count = User.objects.filter(is_department_head=True).count()
-
-    # Additional statistics
-    students_with_internships = Student.objects.filter(internship__isnull=False).distinct().count()
-    
-    # Calculate average students per advisor
-    avg_students_per_advisor = Advisor.objects.annotate(
-        student_count=Count('student')
-    ).aggregate(avg=Avg('student_count'))['avg'] or 0
-    
-    # Calculate internships being supervised (through Student model)
-    supervising_internships = Student.objects.filter(
-        assigned_supervisor__isnull=False,
-        internship__isnull=False
-    ).count()
-    
-    departments_managed = DepartmentHead.objects.count()
-    
-    # Calculate companies managed by company admins
-    managing_companies = Company.objects.filter(companyadmin__isnull=False).count()
-
-    # Filter users based on role flags
+    # Role-specific user filters
     if user_filter == 'students':
-        recent_users = User.objects.filter(is_student=True).order_by('username')[:10000]
+        recent_users = User.objects.filter(is_student=True).order_by('username')[:100]
     elif user_filter == 'advisors':
         recent_users = User.objects.filter(is_advisor=True).order_by('username')[:100]
     elif user_filter == 'department_heads':
@@ -2057,7 +2054,38 @@ def admin_dashboard(request):
     elif user_filter == 'supervisors':
         recent_users = User.objects.filter(is_supervisor=True).order_by('username')[:100]
 
-    # Department management data
+    # Role-specific counts
+    student_count = User.objects.filter(is_student=True).count()
+    advisor_count = User.objects.filter(is_advisor=True).count()
+    supervisor_count = User.objects.filter(is_supervisor=True).count()
+    company_admin_count = User.objects.filter(is_company_admin=True).count()
+    department_head_count = User.objects.filter(is_department_head=True).count()
+
+    # Additional statistics
+    students_with_internships = Student.objects.filter(internship__isnull=False).distinct().count()
+    avg_students_per_advisor = Advisor.objects.annotate(
+        student_count=Count('student')
+    ).aggregate(avg=Avg('student_count'))['avg'] or 0
+
+    supervising_internships = Student.objects.filter(
+        assigned_supervisor__isnull=False,
+        internship__isnull=False
+    ).count()
+
+    departments_managed = DepartmentHead.objects.count()
+    logged_in_user = request.user
+    managing_companies = Company.objects.filter(companyadmin__isnull=False).count()
+
+    # Department stats
+    departments_with_heads_count = Department.objects.annotate(
+        has_head=Exists(DepartmentHead.objects.filter(department=OuterRef('pk')))
+    ).filter(has_head=True).count()
+
+    avg_students_per_dept = Department.objects.annotate(
+        student_count=Count('student')
+    ).aggregate(avg=Avg('student_count'))['avg'] or 0
+
+    # Departments data with head names
     departments = Department.objects.annotate(
         student_count=Count('student'),
         head_name=Coalesce(
@@ -2068,45 +2096,32 @@ def admin_dashboard(request):
         )
     ).order_by('name')
 
-    # Department statistics
-    departments_with_heads_count = Department.objects.annotate(
-        has_head=Exists(DepartmentHead.objects.filter(department=OuterRef('pk')))
-    ).filter(has_head=True).count()
-    
-    avg_students_per_dept = Department.objects.annotate(
-        student_count=Count('student')
-    ).aggregate(avg=Avg('student_count'))['avg'] or 0
-
-    # Company management data
+    # Companies data with internship counts
     companies = Company.objects.annotate(
         internship_count=Count('internship')
     ).order_by('name')
 
     context = {
+        'logged_in_user': logged_in_user,
+        'active_section': active_section,
+        'current_filter': user_filter,
         'total_departments': total_departments,
-        'total_users': total_users,
         'total_students': total_students,
         'total_advisors': total_advisors,
         'total_supervisors': total_supervisors,
         'total_companies': total_companies,
         'total_internships': total_internships,
         'total_notifications': total_notifications,
+        'total_users': total_users,
         'recent_users': recent_users,
         'active_internships': active_internships,
         'departments': departments,
         'companies': companies,
-        'active_section': active_section,
-        'current_filter': user_filter,
-        'total_'
-        
-        # Role-specific counts
         'student_count': student_count,
         'advisor_count': advisor_count,
         'supervisor_count': supervisor_count,
         'company_admin_count': company_admin_count,
         'department_head_count': department_head_count,
-        
-        # Additional statistics
         'students_with_internships': students_with_internships,
         'avg_students_per_advisor': avg_students_per_advisor,
         'supervising_internships': supervising_internships,
@@ -2117,6 +2132,7 @@ def admin_dashboard(request):
     }
 
     return render(request, 'admin/admin_dashboard.html', context)
+
 
 
 def company_register(request):
@@ -3306,7 +3322,7 @@ def student_progress_view(request, student_id):
     schedule = WorkSchedule.objects.filter(student=student, is_active=True).first()
 
     if not schedule:
-        return redirect('create_schedule', student_id=student_id)
+        return redirect('view_student_progress', student_id=student_id)
 
     tasks = student.tasks.all().order_by('work_date')
     workdays_per_week = schedule.workdays_per_week
@@ -3591,48 +3607,95 @@ def advisor_edit_feedback(request, student_id, feedback_id):
         'form': form
     }
     return render(request, 'advisors/edit_feedback.html', context)
-@login_required
-@user_passes_test(lambda u: u.is_supervisor)
-def submit_final_evaluation(request, internship_id):
-    internship = get_object_or_404(Internship, id=internship_id)
+from django.db.models import Count
+from .models import Evaluation, MonthlyEvaluation, Internship
+
+def student_reported_tasks(request, student_id):
+    student = get_object_or_404(Student, pk=student_id)
+    work_schedule = WorkSchedule.objects.filter(student=student, is_active=True).first()
     
-    if not internship.is_completed:
-        raise PermissionDenied("Internship duration not yet completed")
+    # Calculate months completed
+    total_weeks = work_schedule.workdays_per_week * 4  # Assuming 4 weeks/month
+    total_months = student.task_set.count() // total_weeks
     
+    # Check if all months have evaluations
+    monthly_evaluations = MonthlyEvaluation.objects.filter(student=student)
+    all_months_evaluated = monthly_evaluations.count() >= total_months
+    
+    context = {
+        'student': student,
+        'all_months_evaluated': all_months_evaluated,
+        # ... rest of your existing context
+    }
+    return render(request, 'Supervisor/student_reported_tasks.html', context)
+from django.shortcuts import get_object_or_404, render, redirect
+from django.core.exceptions import PermissionDenied
+from django.contrib import messages
+from .models import Student, Evaluation
+from .forms import FinalEvaluationForm
+from .utils import get_grouped_tasks  # Assuming you use a function like this
+
+def submit_final_evaluation(request, student_id):
+    student = get_object_or_404(Student, pk=student_id)
+
+    # Ensure the user is a supervisor and assigned to the student
+    if not request.user.is_supervisor or request.user.supervisor != student.assigned_supervisor:
+        raise PermissionDenied
+
+    # Check that the student has an internship assigned
+    if not student.internship:
+        messages.error(request, "This student has no internship assigned!")
+        return redirect('student_reported_tasks', student_id=student_id)
+
+    # Get internship duration in months
+    try:
+        required_months = int(student.internship.duration)
+    except (AttributeError, ValueError, TypeError):
+        required_months = 3
+
+    # Count reported weeks using grouped_tasks logic
+    grouped_tasks = get_grouped_tasks(student)  # Fetch tasks grouped by week
+    completed_weeks = len(grouped_tasks)
+    completed_months = completed_weeks // 4
+
+    if completed_months < required_months:
+        messages.error(
+            request,
+            f"Cannot submit final evaluation. Only {completed_months} out of {required_months} months completed."
+        )
+        return redirect('student_reported_tasks', student_id=student_id)
+
     if request.method == 'POST':
         form = FinalEvaluationForm(request.POST)
         if form.is_valid():
             evaluation = form.save(commit=False)
-            evaluation.internship = internship
+            evaluation.internship = student.internship
             evaluation.supervisor = request.user.supervisor
-            
-            # Calculate totals
-            section_a = sum([
-                form.cleaned_data['knowledge'],
-                form.cleaned_data['problem_solving'],
-                # ... other Section A fields ...
-            ])
-            
-            section_b = sum([
-                form.cleaned_data['dedication'],
-                # ... other Section B fields ...
-            ])
-            
-            evaluation.total_mark = section_a + section_b
-            evaluation.overall_performance = (evaluation.total_mark / 60) * 20
+
+            fields = [
+                'knowledge', 'problem_solving', 'quality', 'punctuality',
+                'initiative', 'dedication', 'cooperation', 'discipline',
+                'responsibility', 'socialization', 'communication', 'decision_making',
+                'creativity'  # Ensure this field exists in your form
+            ]
+
+            total = sum(form.cleaned_data.get(field, 0) for field in fields)
+            evaluation.total_mark = total
+            evaluation.overall_performance = (total / (len(fields) * 5)) * 100
             evaluation.save()
-            
-            internship.final_evaluation_submitted = True
-            internship.save()
-            
-            return redirect('supervisor_dashboard')
+
+            messages.success(request, "Final evaluation submitted successfully!")
+            return redirect('student_reported_tasks', student_id=student_id)
     else:
         form = FinalEvaluationForm()
-    
-    return render(request, 'Supervisor/final_form.html', {
+
+    return render(request, 'Supervisor/final_evaluation_form.html', {
         'form': form,
-        'internship': internship
+        'student': student,
+        'required_months': required_months,
+        'completed_months': completed_months,
     })
+
 # views.py
 @login_required
 @user_passes_test(lambda u: u.is_student)
