@@ -1,509 +1,347 @@
 {% extends "admin/admin_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}?v=1.2">
+
+  
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Show statistics for each section -->
-    {% if active_section == 'admin_dashboard' or active_section == 'departments' or active_section == 'companies' or current_filter %}
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            {% if active_section == 'admin_dashboard' %}Admin Dashboard
-            {% elif active_section == 'departments' %}Department Management
-            {% elif active_section == 'companies' %}Company Management
-            {% elif current_filter %}{{ current_filter|title }} Management
-            {% endif %}
-        </h1>
+<div class="container-fluid dashboard-container">
+
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Admin Dashboard</h1>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row">
-        <!-- Dashboard Statistics -->
-        {% if active_section == 'admin_dashboard' and not current_filter %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Departments
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_departments }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-building fa-2x text-gray-300"></i>
-                        </div>
+    <div class="stats-grid">
+        <a href="{% url 'admin_dashboard' %}?filter=departments" class="stats-card-link" title="View only Departments">
+            <div class="stats-card border-left-primary">
+                <div class="card-content">
+                     {# Removed inline color style from icon #}
+                    <span class="card-icon"><i class="fas fa-building"></i></span>
+                    <div class="card-info">
+                        <h3 class="card-value">{{ total_departments|default:0 }}</h3>
+                        <p class="card-label">Total Departments</p>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Total Users
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_users }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
+        </a>
+        <a href="{% url 'admin_dashboard' %}?filter=role_all" class="stats-card-link" title="View All Users">
+            <div class="stats-card border-left-success">
+                <div class="card-content">
+                    <span class="card-icon"><i class="fas fa-users"></i></span>
+                    <div class="card-info">
+                        <h3 class="card-value">{{ total_users|default:0 }}</h3>
+                        <p class="card-label">Total Users</p>
                     </div>
                 </div>
             </div>
-        </div>
-        {% endif %}
-
-        <!-- Role-specific statistics -->
-        {% if current_filter == 'students' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Students
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ student_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
-                        </div>
+        </a>
+        <a href="{% url 'admin_dashboard' %}?filter=students" class="stats-card-link" title="View only Students">
+            <div class="stats-card border-left-info">
+                <div class="card-content">
+                    <span class="card-icon"><i class="fas fa-user-graduate"></i></span>
+                    <div class="card-info">
+                        <h3 class="card-value">{{ total_students|default:0 }}</h3>
+                        <p class="card-label">Total Students</p>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                With Active Internships
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ students_with_internships }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-briefcase fa-2x text-gray-300"></i>
-                        </div>
+        </a>
+        <a href="{% url 'admin_dashboard' %}?filter=companies" class="stats-card-link" title="View only Companies">
+            <div class="stats-card border-left-warning">
+                <div class="card-content">
+                    <span class="card-icon"><i class="fas fa-briefcase"></i></span>
+                    <div class="card-info">
+                        <h3 class="card-value">{{ total_companies|default:0 }}</h3>
+                        <p class="card-label">Total Companies</p>
                     </div>
                 </div>
             </div>
-        </div>
-        {% endif %}
-
-        {% if current_filter == 'advisors' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Advisors
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ advisor_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-tie fa-2x text-gray-300"></i>
-                        </div>
+        </a>
+        <a href="{% url 'admin_dashboard' %}?filter=advisors" class="stats-card-link" title="View only Advisors">
+            <div class="stats-card border-left-secondary">
+                <div class="card-content">
+                    <span class="card-icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                    <div class="card-info">
+                        <h3 class="card-value">{{ total_advisors|default:0 }}</h3>
+                        <p class="card-label">Total Advisors</p>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Average Students per Advisor
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_students_per_advisor|floatformat:1 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
+        </a>
+        <a href="{% url 'admin_dashboard' %}?filter=supervisors" class="stats-card-link" title="View only Supervisors">
+            <div class="stats-card border-left-danger">
+                <div class="card-content">
+                    <span class="card-icon"><i class="fas fa-user-tie"></i></span>
+                    <div class="card-info">
+                        <h3 class="card-value">{{ total_supervisors|default:0 }}</h3>
+                        <p class="card-label">Total Supervisors</p>
                     </div>
                 </div>
             </div>
-        </div>
-        {% endif %}
-
-        {% if current_filter == 'supervisors' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Supervisors
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ supervisor_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-shield fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Supervising Internships
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ supervising_internships }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-briefcase fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if current_filter == 'company_admins' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Company Admins
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ company_admin_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-cog fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Managing Companies
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ managing_companies }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-industry fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if current_filter == 'department_heads' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Department Heads
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ department_head_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-tie fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Departments Managed
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ departments_managed }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-building fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Company and Department statistics (shown when appropriate) -->
-        {% if active_section == 'admin_dashboard' or active_section == 'companies' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Companies
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ companies.count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-industry fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if active_section == 'admin_dashboard' %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Active Internships
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_internships }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-briefcase fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if active_section == 'departments' %}
-        <!-- Department-specific statistics -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Departments with Heads
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ departments_with_heads_count }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-tie fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Average Students per Dept
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ avg_students_per_dept|floatformat:1 }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+        </a>
     </div>
-    {% endif %}
 
-    <!-- User Management Section (shown for all user filters and dashboard) -->
-    {% if active_section == 'admin_dashboard' or current_filter %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        {% if current_filter %}
-                            {{ current_filter|title }} Users ({{ recent_users|length }})
-                        {% else %}
-                            Recent User Registrations
-                        {% endif %}
-                    </h6>
-                    <a href="{% url 'role_selection' %}" class="btn btn-sm btn-success">+ Add User</a>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Registration Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in recent_users %}
-                                <tr>
-                                    <td>{{ user.username }}</td>
-                                    <td>{{ user.email }}</td>
-                                    <td>
-                                        {% if user.is_department_head %}Department Head
-                                        {% elif user.is_student %}Student
-                                        {% elif user.is_company_admin %}Company Admin
-                                        {% elif user.is_advisor %}Advisor
-                                        {% elif user.is_superuser %}System Admin
-                                        {% elif user.is_supervisor %}Supervisor
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ user.date_joined|date:"M d, Y" }}</td>
-                                    <td>
-                                        <a href="{% url 'user_update' user.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                        <form action="{% url 'user_delete' user.id %}" method="post" style="display:inline;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                    onclick="return confirm('Are you sure you want to delete this user?');">
-                                                Delete
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
-    <!-- Department Management Section -->
-    {% if active_section == 'departments' or not active_section %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Department Management</h6>
-                    <div>
-                        <a href="{% url 'department_create' %}" class="btn btn-sm btn-success">+ Add Department</a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="departmentTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Department Name</th>
-                                    <th>Head</th>
-                                    <th>Student Count</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for department in departments %}
-                                <tr>
-                                    <td>{{ department.name }}</td>
-                                    <td>
-                                        {% if department.departmenthead_set.exists %}
-                                            {{ department.departmenthead_set.first.user.get_full_name }}
-                                        {% else %}
-                                            <span class="text-muted">Not Assigned</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ department.student_count }}</td>
-                                    <td>
-                                        <a href="{% url 'department_update' department.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                        <form action="{% url 'department_delete' department.id %}" method="post" style="display:inline;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                    onclick="return confirm('Are you sure you want to delete this department?');">
-                                                Delete
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="search-bar-container">
+        <input type="search" id="dashboard-search" placeholder="Search users, departments, companies..." class="form-control">
     </div>
-    {% endif %}
 
-    <!-- Company Management Section -->
-    {% if active_section == 'companies' or not active_section %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">List of Companies</h3>
-                    <div class="card-tools">
-                        <a href="{% url 'add_company' %}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add New Company
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Name</th>
-                                <th>Industry</th>
-                                <th>Location</th>
-                                <th>Contact Email</th>
-                                <th>Internships</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for company in companies %}
-                            <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{ company.name }}</td>
-                                <td>{{ company.industry }}</td>
-                                <td>{{ company.location }}</td>
-                                <td>{{ company.contact_email }}</td>
-                                <td>{{ company.internship_count }}</td>
-                                <td>
-                                    <a href="{% url 'edit_company' company.id %}" class="btn btn-warning btn-sm">Edit</a>
-                                    <a href="{% url 'delete_company' company.id %}" 
-                                    class="btn btn-danger btn-sm" 
-                                    onclick="return confirm('Are you sure you want to delete this company?');">Delete</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center">No companies found.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+
+    <section class="management-section" id="users-section">
+        <div class="section-header">
+             {# Restored original structure (with inline style issue fixed) #}
+             <div class="section-header-left" style="display: flex; align-items: center; gap: 10px;">
+                <h2 class="section-title">
+                    {% if current_filter == 'students' %}Students {# Changed from role_student #}
+                    {% elif current_filter == 'advisors' %}Advisors {# Changed from role_advisor #}
+                    {% elif current_filter == 'supervisors' %}Supervisors {# Changed from role_supervisor #}
+                    {% elif current_filter == 'role_all' %}All Users
+                    {% elif current_filter %} Recent Users
+                    {% else %}Registered Users
+                    {% endif %}
+                </h2>
+                {% if current_filter and current_filter|slice:":4" == 'role' and current_filter != 'role_all' %}
+                    <a href="{% url 'admin_dashboard' %}?filter=role_all" class="btn btn-sm btn-link view-all-link">View All Users</a>
+                {% endif %}
+                <button class="section-toggle-btn" data-target="#users-list" aria-expanded="true" title="Toggle Users List">
+                    <i class="fas fa-minus"></i>
+                </button>
             </div>
+
+            <a href="{% url 'role_selection' %}" class="btn btn-add"><i class="fas fa-plus"></i> Add User</a>
         </div>
-    </div>
-    {% endif %}
+        <div class="item-list-container" id="users-list">
+            {% for user in recent_users %}
+             {% with user_role_text=user.get_role_display|default:'' user_dept_text=user.get_department_name|default:'' user_comp_text=user.get_company_name|default:'' %}
+             <div class="list-item-card"
+                  data-searchable-text="{{ user.get_full_name|default:user.username|lower }} {{ user.email|default:''|lower }} {{ user_role_text|lower }} {{ user_dept_text|lower }} {{ user_comp_text|lower }}">
+                 <div class="item-icon-wrapper">
+                     {% if user.profile_image %}
+                         <img src="{{ user.profile_image.url }}" alt="{{ user.username }} Avatar" class="item-icon user-avatar"> {# Added class back #}
+                     {% else %}
+                         <img src="{% static 'images/default_avatar.png' %}" alt="{{ user.username }} Avatar" class="item-icon user-avatar"> {# Used static tag #}
+                     {% endif %}
+                 </div>
+                  {# --- Start Original item-info with nested columns --- #}
+                 <div class="item-info">
+                     <div class="item-column">
+                         <span class="item-title">Name : {{ user.get_full_name|default:user.username }}</span>
+                         <div class="item-details">
+                             <span class="item-subtitle">
+                                 <strong>Email</strong> : </strong> {{ user.email|default:'No email' }}
+                             </span>
+                             <div class="department"> {# Original Affiliation Block #}
+                                 {% if user.student %}
+                                     <span>
+                                         Department:
+                                         {% if user.student.department %}
+                                             {{ user.student.department }}
+                                         {% else %}
+                                             Undeclared
+                                         {% endif %}
+                                     </span>
+                                 {% elif user.advisor %}
+                                     <span>
+                                         Department:
+                                         {% if user.advisor.department %}
+                                             {{ user.advisor.department }}
+                                         {% else %}
+                                             Undeclared
+                                         {% endif %}
+                                     </span>
+                                 {% elif user.departmenthead %}
+                                     <span>
+                                         Department:
+                                         {% if user.departmenthead.department %}
+                                             {{ user.departmenthead.department }}
+                                         {% else %}
+                                             Undeclared
+                                         {% endif %}
+                                     </span>
+                                 {% elif user.companyadmin %}
+                                     <span>
+                                         Company:
+                                         {% if user.companyadmin.company %}
+                                             {{ user.companyadmin.company }}
+                                         {% else %}
+                                             Undeclared
+                                         {% endif %}
+                                     </span>
+                                 {% elif user.supervisor %}
+                                     <span>
+                                         Company:
+                                         {% if user.supervisor.company %}
+                                             {{ user.supervisor.company }}
+                                         {% else %}
+                                             Undeclared
+                                         {% endif %}
+                                     </span>
+                                 {% else %}
+                                     <span>Undeclared</span>
+                                 {% endif %}
+                             </div>
+                         </div>
+                     </div>
+                     <div class="item-column">
+                         <div class="item-data item-data-role">
+                        <strong> <span class="status-badge {% if user.is_superuser %}status-admin{% elif user.is_department_head %}status-high{% elif user.is_advisor %}status-medium{% elif user.is_student %}status-low{% elif user.is_company_admin or user.is_supervisor %}status-very-high{% else %}status-default{% endif %}">
+                                     {% if user.is_department_head %}Dept. Head
+                                     {% elif user.is_student %}Student
+                                     {% elif user.is_company_admin %}Comp. Admin
+                                     {% elif user.is_advisor %}Advisor
+                                     {% elif user.is_superuser %}Admin
+                                     {% elif user.is_supervisor %}Supervisor
+                                     {% else %}User
+                                     {% endif %}
+                                 </span></strong>
+                         </div>
+                     </div>
+                 </div>
+                  {# --- End Original item-info with nested columns --- #}
+
+                 <div class="item-actions">
+                     <a href="{% url 'view_profile' user.id %}" class="action-btn view-btn" title="View Profile">
+                                                <i class="fas fa-eye"></i>
+                         </a>
+
+                     <a href="{% url 'user_update' user.id %}" class="action-btn edit-btn" title="Edit {{ user.username }}"><i class="fas fa-pencil-alt"></i></a>
+                      <form action="{% url 'user_delete' user.id %}" method="post" class="delete-form" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete user {{ user.username }}?');">
+                          {% csrf_token %}
+                          <button type="submit" class="action-btn delete-btn" title="Delete {{ user.username }}"><i class="fas fa-trash-alt"></i></button>
+                      </form>
+                 </div>
+            </div>
+             {% endwith %}
+            {% empty %}
+                <p class="no-data default-no-data">
+                    {% if current_filter and current_filter|slice:":4" == 'role' %}
+                        No users found matching the '{{ current_filter|slice:"5:"|title }}' role.
+                    {% else %}
+                        No recent users found.
+                    {% endif %}
+                </p>
+            {% endfor %}
+            <p class="no-data search-no-results" style="display: none;">No users match your search.</p>
+        </div>
+    </section>
+
+    <section class="management-section" id="departments-section">
+         {# Restored original header structure #}
+        <div class="section-header">
+            <div class="section-header-left" style="display: flex; align-items: center; gap: 10px;"> {# Removed bad margin style #}
+                <h2 class="section-title">
+                    {% if current_filter == 'departments' %}All Departments{% else %} AASTU Departments{% endif %}
+                </h2>
+                {% if current_filter == 'departments' %}
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-link view-all-link">View Dashboard</a>
+                {% endif %}
+                <button class="section-toggle-btn" data-target="#departments-list" aria-expanded="true" title="Toggle Departments List">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            <a href="{% url 'department_create' %}" class="btn btn-add"><i class="fas fa-plus"></i> Add Department</a>
+        </div>
+        <div class="item-list-container" id="departments-list">
+            {% for department in departments %}
+                {% with head_name=department.get_head_name|default:'' %}
+                <div class="list-item-card"
+                     data-searchable-text="{{ department.name|lower }} {{ head_name|lower }}">
+                     <div class="item-icon-wrapper">
+                         <img src="{% static 'images/department_icon.png' %}" alt="Department Icon" class="item-icon department-avatar">
+                     </div>
+                     <div class="item-info">
+                         <span class="item-title">{{ department.name }}</span>
+                         <span class="item-subtitle">
+                            <i class="fas fa-user-tie fa-fw"></i> Head: {% if department.departmenthead_set.first.user %}{{ department.departmenthead_set.first.user.get_full_name|default:department.departmenthead_set.first.user.username }}{% else %}Not Assigned{% endif %}
+                       </span>
+                     </div>
+                     <div class="item-data item-data-students">
+                         <i class="fas fa-user-graduate fa-fw"></i> {{ department.student_set.count|default:0 }} Student{{ department.student_set.count|pluralize }}
+                     </div>
+                     <div class="item-data item-data-advisors">
+                         <span class="status-badge status-medium" title="Advisors in {{ department.name }}">
+                             <i class="fas fa-chalkboard-teacher"></i> {{ department.advisor_set.count|default:0 }} Advisor{{ department.advisor_set.count|pluralize }}
+                         </span>
+                     </div>
+                     <div class="item-actions">
+                         <a href="{% url 'department_update' department.id %}" class="action-btn edit-btn" title="Edit {{ department.name }}">
+                             <i class="fas fa-pencil-alt"></i>
+                         </a>
+                         <form action="{% url 'department_delete' department.id %}" method="post" class="delete-form" style="display: inline;"
+                               onsubmit="return confirm('Are you sure you want to delete the department {{ department.name }}?');">
+                             {% csrf_token %}
+                             <button type="submit" class="action-btn delete-btn" title="Delete {{ department.name }}">
+                                 <i class="fas fa-trash-alt"></i>
+                             </button>
+                         </form>
+                     </div>
+                </div>
+                {% endwith %}
+            {% empty %}
+                <p class="no-data default-no-data">No departments found.</p>
+            {% endfor %}
+            <p class="no-data search-no-results" style="display: none;">No departments match your search.</p>
+        </div>
+    </section>
+
+    <section class="management-section" id="companies-section">
+         {# Restored original header structure #}
+        <div class="section-header">
+            <div class="section-header-left" style="display: flex; align-items: center; gap: 10px;">
+                <h2 class="section-title">
+                    {% if current_filter == 'companies' %}All Companies{% else %}Companies{% endif %}
+                </h2>
+                {% if current_filter == 'companies' %}
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-link view-all-link">View Dashboard</a>
+                {% endif %}
+                <button class="section-toggle-btn" data-target="#companies-list" aria-expanded="true" title="Toggle Companies List">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            <a href="{% url 'add_company' %}" class="btn btn-add"><i class="fas fa-plus"></i> Add Company</a>
+        </div>
+        <div class="item-list-container" id="companies-list">
+            {% for company in companies %}
+                 <div class="list-item-card"
+                      data-searchable-text="{{ company.name|lower }} {{ company.industry|default:''|lower }} {{ company.location|default:''|lower }}">
+                      <div class="item-icon-wrapper">
+                        <img src="{{ company.logo.url|default:'/static/images/default_avatar.png' }}" alt="{{ company.name }} Logo" class="item-icon">
+                    </div>
+                        <div class="item-info">
+                            <span class="item-title">{{ company.name }}</span>
+                            <div class="item-details">
+                                <span class="item-subtitle"><i class="fas fa-industry fa-fw"></i> {{ company.industry|default:"N/A" }}</span>
+                                <span class="item-subtitle"><i class="fas fa-map-marker-alt fa-fw"></i> {{ company.location|default:"N/A" }}</span>
+                            </div>
+                        </div>
+                        <div class="item-data item-data-projects">
+                            <span class="status-badge status-very-high" title="Posted Internships by {{ company.name }}">
+                                <i class="fas fa-clipboard-list"></i> {{ company.projects.count|default:0 }} Intern{{ company.projects.count|pluralize:"ship,ships" }} {# Changed relation to projects #}
+                            </span>
+                        </div>
+                        <div class="item-actions">
+                            <a href="{% url 'view_company' company.id %}" class="action-btn view-btn" title="View {{ company.name }} Details"><i class="fas fa-eye"></i></a>
+                            <a href="{% url 'edit_company' company.id %}" class="action-btn edit-btn" title="Edit {{ company.name }}"><i class="fas fa-pencil-alt"></i></a>
+                            <form action="{% url 'delete_company' company.id %}" method="post" class="delete-form" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete the company {{ company.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn delete-btn" title="Delete {{ company.name }}"><i class="fas fa-trash-alt"></i></button>
+                            </form>
+                        </div>
+                  </div>
+             {% empty %}
+                 <p class="no-data default-no-data">No companies found.</p>
+             {% endfor %}
+             <p class="no-data search-no-results" style="display: none;">No companies match your search.</p>
+         </div>
+     </section>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/admin_dashboard.js' %}"></script>
 {% endblock %}
