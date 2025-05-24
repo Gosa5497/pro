@@ -29,14 +29,14 @@ class User(AbstractUser):
     is_company_admin = models.BooleanField(default=False, verbose_name="Is Company Admin")
 
     # Common Fields
-    bio = models.TextField(blank=True, null=True)
-    address = models.CharField(max_length=255, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True, verbose_name="Bio")
+    address = models.CharField(max_length=255, blank=True, null=True, verbose_name="Address")
     phone = models.CharField(max_length=25, blank=True, null=True, verbose_name="Phone Number")
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True, verbose_name="Profile Image")
+
     GENDER_CHOICES = (
         ('M', 'Male'),
         ('F', 'Female'),
-        
     )
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True, verbose_name="Gender")
 
@@ -55,11 +55,16 @@ class User(AbstractUser):
     )
 
     def __str__(self):
-        return self.username
-
+        if self.username:
+            return self.username
+        elif self.first_name or self.last_name:
+            return f"{self.first_name} {self.last_name}".strip()
+        else:
+            return f"User #{self.id}" if self.id else "Unnamed User"
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
+
 
 # Company Model
 class Company(models.Model):
@@ -236,7 +241,7 @@ class Internship(models.Model):
             f"{item['title']}: {', '.join(item['details'])}"
             for item in self.optional_qualifications if isinstance(item, dict)
         )
-from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator, FileExtensionValidator
+
 
 class Student(models.Model):
     student_id_validator = RegexValidator(
@@ -270,49 +275,19 @@ class Student(models.Model):
     assigned_supervisor = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Assigned Supervisor")
     internship = models.ForeignKey(Internship, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Internship")
 
-    def str(self):
-        return self.user.get_full_name()
-
-    def task_reports_count(self):
-        return self.task_set.count()
-
-    def get_ratable_internships(self):
-        return Internship.objects.filter(
-            student=self,
-            final_evaluation_submitted=True
-        ).exclude(
-            company_rating__student=self
-        )
-
-    class Meta:
-        verbose_name = "Student"
-        verbose_name_plural = "Students"
-    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, verbose_name="User")
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name="Department")
-    major = models.CharField(max_length=100, verbose_name="Major")
-    year = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        verbose_name="Year of Study"
-    )
-    resume = models.FileField(
-        upload_to='resumes/',
-        blank=True,
-        null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx'])],
-        verbose_name="Resume"
-    )
-    status = models.CharField(max_length=50, default='Active', verbose_name="Status")
-    assigned_advisor = models.ForeignKey(Advisor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Assigned Advisor")
-    assigned_supervisor = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Assigned Supervisor")
-    internship = models.ForeignKey(Internship, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Internship")
-
     def __str__(self):
         return self.user.get_full_name()
 
     def task_reports_count(self):
+        """Count all tasks for this student"""
         return self.task_set.count()
 
+    def completed_task_count(self):
+        """Count completed tasks"""
+        return self.task_set.filter(status='completed').count()
+
     def get_ratable_internships(self):
+        """Get internships that can be rated"""
         return Internship.objects.filter(
             student=self,
             final_evaluation_submitted=True
@@ -320,9 +295,49 @@ class Student(models.Model):
             company_rating__student=self
         )
 
+    @property
+    def internship_duration_months(self):
+        """Safely get internship duration in months"""
+        if not self.internship:
+            return 0
+        try:
+            return int(self.internship.duration)
+        except (ValueError, AttributeError):
+            return 0
+
+    @property
+    def work_schedule(self):
+        """Get active work schedule"""
+        return WorkSchedule.objects.filter(student=self, is_active=True).first()
+
+    def required_workdays(self):
+        """Calculate total required workdays"""
+        if not self.work_schedule:
+            return 0
+        return self.internship_duration_months * 4 * self.work_schedule.workdays_per_week
+
+    def completed_workdays(self):
+        """Count completed workdays"""
+        return self.task_set.filter(status='completed').count()
+
+    def is_ready_for_final_evaluation(self):
+        """Check if all workdays are completed"""
+        return self.completed_workdays() >= self.required_workdays()
+
+    def work_completion_percentage(self):
+        """Calculate percentage of work completed"""
+        if self.required_workdays() == 0:
+            return 0
+        return (self.completed_workdays() / self.required_workdays()) * 100
+
+    def remaining_workdays(self):
+        """Calculate remaining workdays"""
+        return max(0, self.required_workdays() - self.completed_workdays())
+
     class Meta:
         verbose_name = "Student"
         verbose_name_plural = "Students"
+        ordering = ['user__last_name', 'user__first_name']
 
 # Application Model
 class Application(models.Model):
@@ -333,10 +348,10 @@ class Application(models.Model):
     ]
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending', verbose_name="Status")
     cover_letter = models.TextField(null=True, blank=True, verbose_name="Cover Letter")
-    internship = models.ForeignKey(Internship, on_delete=models.CASCADE, verbose_name="Internship")
+    internship = models.ForeignKey(Internship, on_delete=models.CASCADE, related_name="applications")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, verbose_name="Student")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
-
+    requirement_responses = models.JSONField(default=dict, blank=True, verbose_name="Requirement Responses")
     def __str__(self):
         return f"Application {self.id} - Status: {self.status}"
 
