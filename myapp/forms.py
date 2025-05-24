@@ -577,6 +577,14 @@ def make_field_name(prefix, text, index):
 from django import forms
 from .models import Application
 from .utils import make_field_name  # your own helper
+from django import forms
+from .models import Application
+
+# Define make_field_name to accept 3 arguments
+def make_field_name(prefix, text, index):
+    """Generate a sanitized field name using prefix, text, and index."""
+    sanitized_text = text.lower().replace(' ', '_').replace('-', '_')
+    return f"{prefix}_{sanitized_text}_{index}"
 
 class ApplicationForm(forms.ModelForm):
     resume = forms.FileField(
@@ -1347,3 +1355,63 @@ class AdvisorTaskFeedbackForm(forms.Form):
         required=True,
         label="Advisor Feedback"
     )
+class CompanyRatingForm(forms.ModelForm):
+    class Meta:
+        model = CompanyRating
+        fields = ['rating', 'comments']
+        widgets = {
+            'rating': forms.NumberInput(attrs={
+                'min': 1,
+                'max': 5,
+                'class': 'form-control',
+                'placeholder': 'Enter rating (1-5)'
+            }),
+            'comments': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Optional comments...'
+            }),
+        }
+        labels = {
+            'rating': 'Company Rating',
+            'comments': 'Additional Comments'
+        }
+        help_texts = {
+            'rating': '1 (Poor) - 5 (Excellent)',
+        }
+
+    def clean_rating(self):
+        rating = self.cleaned_data.get('rating')
+        if rating < 1 or rating > 5:
+            raise forms.ValidationError("Rating must be between 1 and 5")
+        return rating
+class FinalEvaluationForm(forms.ModelForm):
+    class Meta:
+        model = Evaluation
+        fields = [
+            'knowledge', 'problem_solving', 'quality', 'punctuality',
+            'initiative', 'dedication', 'cooperation', 'discipline',
+            'responsibility', 'socialization', 'communication', 
+            'decision_making', 'potential_comments', 'job_offer'
+        ]
+        widgets = {
+            field: forms.NumberInput(attrs={
+                'min': 1,
+                'max': 5,
+                'class': 'form-control rating-input'
+            }) for field in [
+                'knowledge', 'problem_solving', 'quality', 'punctuality',
+                'initiative', 'dedication', 'cooperation', 'discipline',
+                'responsibility', 'socialization', 'communication', 
+                'decision_making'
+            ]
+        }
+        widgets.update({
+            'potential_comments': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3
+            }),
+            'job_offer': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        })
