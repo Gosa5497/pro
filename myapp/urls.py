@@ -192,6 +192,7 @@ urlpatterns = [
     # Application URLs
     path('applications/<int:application_id>/accept/', views.accept_application, name='accept_application'),
     path('applications/<int:application_id>/reject/', views.reject_application, name='reject_application'),
+    path('application/<int:application_id>/', views.application_detail, name='application_detail'),
 
     # Feedback and Task URLs
     path('feedback/', views.supervisor_feedback_view, name='supervisor_feedback'),
@@ -234,7 +235,7 @@ path('groups/<int:group_id>/manage/', views.manage_group, name='manage_group'),
 
 path('supervisor/<int:student_id>/evaluation/month/<int:month_number>/edit/',views.edit_monthly_evaluation,name='edit_monthly_evaluation'
 ),
-path('communications_supervisors/', views.communication_dash, name='communication_dash'),
+path('communicationss/', views.communication_dash, name='communication_dash'),
 path('student/<int:student_id>/submit-final-evaluation/', views.submit_final_evaluation, name='submit_final_evaluation'),
 
 # urls.py
