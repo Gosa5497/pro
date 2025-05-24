@@ -63,7 +63,12 @@
                                             </div>
                                             <div class="file-info">
                                                 <div class="file-name">{{ message.file.name|truncatechars:25 }}</div>
-                                                <div class="file-size">{{ message.file.size|filesizeformat }}</div>
+                                               {% if message.file_exists %}
+                                                    <div class="file-size">{{ message.file.size|filesizeformat }}</div>
+                                                {% else %}
+                                                    <div class="file-size text-danger">File not found</div>
+                                                {% endif %}
+
                                             </div>
                                             <a href="{{ message.file.url }}" download class="file-download">
                                                 <i class="fas fa-download"></i>
