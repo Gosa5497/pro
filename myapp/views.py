@@ -309,10 +309,13 @@ def post_internship(request):
 
     return render(request, 'company/post_internship.html', {'form': form})
 
-
 def view_internships(request):
-    internships = Internship.objects.filter(company=request.user.companyadmin.company)
+    internships = Internship.objects.filter(
+        company=request.user.companyadmin.company
+    ).annotate(applicant_count=Count('applications'))  # ✅ Now this works
     return render(request, 'company/view_internships.html', {'internships': internships})
+
+
 def update_internship(request, internship_id):
     internship = get_object_or_404(Internship, id=internship_id)
     if request.method == "POST":
@@ -469,6 +472,24 @@ def applicant_list(request, internship_id):
         'base_template': base_template,
     }
     return render(request, 'company/applicant_list.html', context)
+def application_detail(request, application_id):
+    application = get_object_or_404(Application, id=application_id)
+    internship = application.internship
+
+    required_list = []
+    if internship.required_qualifications:
+        required_list = [q.strip() for q in internship.required_qualifications.split(',') if q.strip()]
+
+    optional_list = []
+    if internship.optional_qualifications:
+        optional_list = [q.strip() for q in internship.optional_qualifications.split(',') if q.strip()]
+
+    return render(request, 'company_admin/application_detail.html', {
+        'application': application,
+        'required_list': required_list,
+        'optional_list': optional_list,
+    })
+
 from django.core.exceptions import ObjectDoesNotExist
 
 @login_required
@@ -1506,7 +1527,7 @@ def is_department_head(user):
 @user_passes_test(is_department_head)
 def advisor_management(request):
     department = request.user.departmenthead.department
-    advisors = Advisor.objects.filter(department=department)
+    advisors = Advisor.objects.filter(department=department).annotate(student_count=Count('student'))
     return render(request, 'advisors/advisor_management.html', {
         'advisors': advisors,
         'departments': Department.objects.all()
@@ -1570,12 +1591,12 @@ def view_advisor_details(request, advisor_user_id):
 def update_advisor(request, advisor_user_id):
     advisor = get_object_or_404(Advisor, user_id=advisor_user_id)
     if request.method == 'POST':
-        form = AdvisorForm(request.POST, request.FILES, instance=advisor)
+        form = DepartmentHeadAdvisorUpdateForm(request.POST, request.FILES, instance=advisor)
         if form.is_valid():
             form.save()
             return redirect('advisor_management')
     else:
-        form = AdvisorForm(instance=advisor)
+        form = DepartmentHeadAdvisorUpdateForm(instance=advisor)
     return render(request, 'advisors/update_advisor.html', {'form': form})
 
 
@@ -1800,21 +1821,22 @@ def company_admin_register(request):
     else:
         form = CompanyAdminRegistrationForm()
     return render(request, 'Company_Admin/company_admin_register.html', {'form': form})
-
-# Company Admin Dashboard
 @login_required
 @user_passes_test(lambda u: u.is_company_admin)
 def company_admin_dashboard(request):
     company = request.user.companyadmin.company  # Get the admin's company
-    
+
     stats = {
         'total_applications': Application.objects.filter(internship__company=company).count(),
         'open_internships': Internship.objects.filter(company=company).count(),
         'pending_applications': Application.objects.filter(internship__company=company, status='Pending').count(),
+        'supervisor_count': Supervisor.objects.filter(company=company).count(),  # Count supervisors
     }
-    
-    return render(request, 'Company_Admin/company_admin_dashboard.html', {'stats': stats, 'company': company})
 
+    return render(request, 'Company_Admin/company_admin_dashboard.html', {
+        'stats': stats,
+        'company': company
+    })
 # Manage Applications (Approve/Reject)
 @login_required
 @user_passes_test(lambda u: u.is_company_admin)
@@ -1866,11 +1888,6 @@ def assign_supervisor_to_students(request):
         'students': students,  # ✅ Add students to the template context
         'supervisors': supervisors,  # ✅ Add supervisors to the template context
     })
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from .models import Supervisor, Student  # adjust if needed
-
 @login_required
 def assigned_students(request):
     # Ensure the user is a supervisor
@@ -3199,6 +3216,11 @@ def submit_daily_task(request):
         return redirect('student_dashboard')
 
     internship = application.internship
+
+    # ❗️ Check if final evaluation is already submitted
+    if Evaluation.objects.filter(internship=internship).exists():
+        messages.error(request, "You cannot submit tasks after your final evaluation has been submitted.")
+        return redirect('student_dashboard')
 
     try:
         work_schedule = WorkSchedule.objects.get(student=student, is_active=True)
