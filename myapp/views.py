@@ -1289,6 +1289,12 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         messages.success(self.request, 'User created successfully!')
         return super().form_valid(form)
 
+from django.urls import reverse_lazy
+from django.views.generic.edit import UpdateView
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 class UserUpdateView(UpdateView):
     model = User
     template_name = 'form.html'
@@ -1303,10 +1309,17 @@ class UserUpdateView(UpdateView):
         elif user.is_supervisor:
             return SuperadminSupervisorUpdateForm
         elif user.is_department_head:
-            return DepartmentHeadUpdateForm  # Make sure you create this form similarly to others
+            return DepartmentHeadUpdateForm
         elif user.is_company_admin:
             return CompanyAdminUpdateForm
         return BaseUpdateForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # ✅ Fix: Ensure logged_in_user is in context so admin_base.html won't break
+        context['logged_in_user'] = self.request.user
+        return context
+
 class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
     View for deleting an existing user.
@@ -2479,25 +2492,39 @@ def view_monthly_evaluation(request, evaluation_id):
     pdf.save()
     buffer.seek(0)
     return HttpResponse(buffer, content_type='application/pdf')
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.db.models import Avg
+
 @login_required
 @user_passes_test(lambda u: u.is_department_head)
 def view_student_progress(request, user_id):
-    student = get_object_or_404(Student, user_id=user_id)
+    student = get_object_or_404(Student, user__id=user_id)
     department_head = request.user.departmenthead
-    
-    # Verify student is in department head's department
+    application = student.application_set.filter(status='Approved').first()
+    if not application:
+        messages.error(request, "You must have an approved internship application.")
+        return redirect('student_dashboard')
+
+    internship = application.internship
+    # Ensure student belongs to the same department
     if student.department != department_head.department:
-        raise PermissionDenied("You can only view students from your department")
+        raise PermissionDenied("You can only view students from your department.")
 
     # Task data
     tasks = Task.objects.filter(student=student).order_by('work_date')
-    completed_tasks = tasks.filter(status='completed').count()
-    pending_tasks = tasks.filter(status='pending').count()
-    
-    # Group tasks by week
+    internship_months = int(internship.duration)
+
+    # Get workdays_per_week before using it
     schedule = WorkSchedule.objects.filter(student=student, is_active=True).first()
-    workdays_per_week = schedule.workdays_per_week if schedule else 5  # Default if no schedule
-    
+    workdays_per_week = schedule.workdays_per_week if schedule else 5
+
+    completed_tasks = internship_months * 4 * workdays_per_week
+    pending_tasks = tasks.filter(status='pending').count()
+
+    # Group tasks by week
     grouped_tasks = []
     weekly_tasks = []
     week_number = 1
@@ -2514,7 +2541,7 @@ def view_student_progress(request, user_id):
             weekly_tasks = []
             week_number += 1
 
-    if weekly_tasks:  # Add remaining tasks for incomplete week
+    if weekly_tasks:
         grouped_tasks.append({
             'week_number': week_number,
             'tasks': weekly_tasks,
@@ -2522,40 +2549,38 @@ def view_student_progress(request, user_id):
             'is_complete': False
         })
 
-    # Evaluation data
+    # Monthly Evaluations
     evaluations = MonthlyEvaluation.objects.filter(student=student).order_by('created_at')
     evaluations_count = evaluations.count()
-    
-    # Calculate averages if evaluations exist
+
     if evaluations_count > 0:
         average_score = evaluations.aggregate(Avg('total_score'))['total_score__avg']
-        
-        # Calculate category averages
         avg_punctuality = evaluations.aggregate(Avg('punctuality'))['punctuality__avg']
         avg_reliability = evaluations.aggregate(Avg('reliability'))['reliability__avg']
         avg_communication = evaluations.aggregate(Avg('communication'))['communication__avg']
         avg_technical_skills = evaluations.aggregate(Avg('technical_skills'))['technical_skills__avg']
-        avg_responsibility = evaluations.aggregate(Avg('responsibility'))['responsibility__avg'] / 3  # Normalize to 5-point scale
-        avg_teamwork = evaluations.aggregate(Avg('team_quality'))['team_quality__avg'] / 4  # Normalize to 5-point scale
-        
-        # Prepare chart data
+        avg_responsibility = evaluations.aggregate(Avg('responsibility'))['responsibility__avg'] / 3
+        avg_teamwork = evaluations.aggregate(Avg('team_quality'))['team_quality__avg'] / 4
         evaluation_dates = [e.month for e in evaluations]
         evaluation_scores = [e.total_score for e in evaluations]
     else:
-        average_score = None
+        average_score = 0
         avg_punctuality = avg_reliability = avg_communication = 0
         avg_technical_skills = avg_responsibility = avg_teamwork = 0
         evaluation_dates = []
         evaluation_scores = []
 
+    # Final Evaluation (Supervisor Evaluation)
+    # Get internship either from student or approved application
+    internship = student.internship
+    if not internship:
+        approved_app = Application.objects.filter(student=student, status='Approved').first()
+        internship = approved_app.internship if approved_app else None
+
+    final_evaluation = Evaluation.objects.filter(internship=internship).first() if internship else None
+
     context = {
-     'completed_tasks': completed_tasks,              # int
-    'pending_tasks': pending_tasks,                  # int
-    'average_score': average_score,                  # float
-    'evaluations_count': evaluations_count,
         'student': student,
-        'completed_tasks': completed_tasks,
-        'pending_tasks': pending_tasks,
         'monthly_evaluations': evaluations,
         'evaluations_count': evaluations_count,
         'average_score': average_score,
@@ -2567,12 +2592,14 @@ def view_student_progress(request, user_id):
         'avg_technical_skills': avg_technical_skills or 0,
         'avg_responsibility': avg_responsibility or 0,
         'avg_teamwork': avg_teamwork or 0,
-        # New task-related context
         'grouped_tasks': grouped_tasks,
         'workdays_per_week': workdays_per_week,
-        'all_tasks': tasks,  # Optional - if you need access to all tasks separately
+        'completed_tasks': completed_tasks,
+        'pending_tasks': pending_tasks,
+        'all_tasks': tasks,
+        'final_evaluation': final_evaluation,  
     }
-    
+
     return render(request, 'students/view_student_progress.html', context)
 
 @login_required
@@ -2696,54 +2723,69 @@ def student_dashboard(request):
         'user': request.user,  # Ensure user is passed
         
     })
-
-from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Avg
-from django.shortcuts import render, get_object_or_404
-
-from .models import DepartmentHead, Student, Advisor, Internship
-
-from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Avg
-from django.shortcuts import render, get_object_or_404
-
-from .models import DepartmentHead, Student, Advisor, Internship, Company
-
 @login_required
 def department_head_dashboard(request):
     user = request.user
     department_head = get_object_or_404(DepartmentHead, user=user)
     department = department_head.department
 
-    # Count students and advisors in this department
-    student_count = Student.objects.filter(department=department).count()
-    advisor_count = Advisor.objects.filter(department=department).count()
+    # Student statistics for the department
+    students = Student.objects.filter(department=department)
+    student_count = students.count()
+    
+    # Student status counts
+    student_active_count = students.filter(status='active').count()
+    student_inactive_count = students.filter(status='inactive').count()
+    
+    # Students with different internship statuses
+    internship_approved_students = students.filter(
+        application__status='approved'
+    ).distinct().count()
+    
+    internship_pending_students = students.filter(
+        application__status='pending'
+    ).distinct().count()
+    
+    internship_rejected_students = students.filter(
+        application__status='rejected'
+    ).distinct().count()
 
-    # ✅ Total internships and companies across the system (not filtered)
-    total_internships = Internship.objects.count()
-    total_companies = Company.objects.count()
+    # Internship applications statistics for department students
+    department_applications = Application.objects.filter(
+        student__department=department
+    )
+    internship_approved_count = department_applications.filter(status='approved').count()
+    internship_pending_count = department_applications.filter(status='pending').count()
+    internship_rejected_count = department_applications.filter(status='rejected').count()
 
-    # Average students per advisor in this department
-    avg_students_per_advisor = Advisor.objects.filter(department=department).annotate(
-        num_students=Count('student')
-    ).aggregate(avg=Avg('num_students'))['avg'] or 0
-
-    # List of students and advisors in this department
-    students = Student.objects.filter(department=department).select_related('user')
-    advisors = Advisor.objects.filter(department=department).select_related('user')
+    # Get all unique industry names and counts from the database
+    industries = Company.objects.values('industry').annotate(
+        count=Count('industry')
+    ).order_by('-count')
 
     context = {
         'user': user,
         'department': department,
         'student_count': student_count,
-        'advisor_count': advisor_count,
-        'total_internships': total_internships,      # ✅ System-wide total
-        'total_companies': total_companies,         # ✅ System-wide total
-        'avg_students_per_advisor': avg_students_per_advisor,
-        'students': students,
-        'advisors': advisors,
+        'student_active_count': student_active_count,
+        'student_inactive_count': student_inactive_count,
+        
+        # Students with different internship statuses
+        'student_internship_approved_count': internship_approved_students,
+        'student_internship_pending_count': internship_pending_students,
+        'student_internship_rejected_count': internship_rejected_students,
+        
+        # Application status counts
+        'internship_approved_count': internship_approved_count,
+        'internship_pending_count': internship_pending_count,
+        'internship_rejected_count': internship_rejected_count,
+        
+        'total_companies': Company.objects.count(),
+        'total_internships': Internship.objects.count(),
+        'advisor_count': Advisor.objects.filter(department=department).count(),
+        'industry_labels': [item['industry'] for item in industries if item['industry']],
+        'industry_counts': [item['count'] for item in industries if item['industry']],
     }
-
     return render(request, 'departement_head/department_head_dashboard.html', context)
 
 @login_required
@@ -3145,25 +3187,47 @@ def assign_workdays(request):
         return redirect('assigned_students')
 
     return redirect('assigned_students')
-
 @login_required
 @user_passes_test(lambda u: u.is_student)
 def submit_daily_task(request):
     student = request.user.student
-    today = timezone.now().date()
+    today = now().date()
+
+    application = Application.objects.filter(student=student, status='Approved').first()
+    if not application:
+        messages.error(request, "You must have an approved internship application to submit tasks.")
+        return redirect('student_dashboard')
+
+    internship = application.internship
 
     try:
         work_schedule = WorkSchedule.objects.get(student=student, is_active=True)
     except WorkSchedule.DoesNotExist:
-        messages.error(request, "No active work schedule assigned")
+        messages.error(request, "No active work schedule assigned.")
         return redirect('student_dashboard')
 
-    try:
-        existing_task = DailyWorkReport.objects.get(student=student, work_date=today)
-        is_edit = True
-    except DailyWorkReport.DoesNotExist:
-        existing_task = None
-        is_edit = False
+    internship_months = int(internship.duration)
+    workdays_per_week = work_schedule.workdays_per_week
+    max_allowed_reports = internship_months * 4 * workdays_per_week
+
+    submitted_reports_count = Task.objects.filter(
+        student=student,
+        status__in=['pending', 'completed']
+    ).count()
+
+    duration_valid = submitted_reports_count < max_allowed_reports
+
+    # Only allow editing if 'edit' query param is passed
+    edit_requested = request.GET.get('edit') == '1'
+    existing_task = Task.objects.filter(student=student, work_date=today).first() if edit_requested else None
+    is_edit = existing_task is not None
+
+    if not is_edit and not duration_valid:
+        return render(request, 'students/submit_daily_task.html', {
+            'duration_valid': False,
+            'is_edit': False,
+            'today': today,
+        })
 
     if request.method == 'POST':
         form = DailyTaskForm(request.POST, instance=existing_task)
@@ -3171,30 +3235,26 @@ def submit_daily_task(request):
             task = form.save(commit=False)
             task.student = student
             task.work_date = today
+            task.internship = internship
             task.supervisor = student.assigned_supervisor
-            task.internship = student.internship
-            task.week_number = work_schedule.current_week()  # This now uses the fixed method
-
-            if 'save' in request.POST:
-                task.status = 'draft'
-                msg = "Draft saved successfully!"
-            else:
-                task.status = 'submitted'
-                msg = "Task submitted successfully!"
-
+            task.status = 'pending' if 'save' in request.POST else 'completed'
             task.save()
-            messages.success(request, msg)
+
+            messages.success(
+                request,
+                "Task updated!" if is_edit else "Task submitted successfully!"
+            )
             return redirect('view_submitted_tasks')
     else:
         form = DailyTaskForm(instance=existing_task)
 
-    context = {
+    return render(request, 'students/submit_daily_task.html', {
         'form': form,
         'today': today,
         'is_edit': is_edit,
-        'work_schedule': work_schedule,
-    }
-    return render(request, 'students/submit_daily_task.html', context)
+        'duration_valid': duration_valid,
+    })
+
 @login_required
 @user_passes_test(lambda u: u.is_supervisor)
 def submit_monthly_evaluation(request, student_id, month_number):
@@ -3281,41 +3341,67 @@ def view_submitted_tasks(request):
         messages.warning(request, "No active work schedule found")
         return redirect('student_dashboard')
 
-    # Get tasks ordered by date
-    tasks = Task.objects.filter(student=student).select_related(
-        'supervisor'
-    ).order_by('work_date')
-    
-    # Group tasks using the same logic as student_progress_view
+    today = now().date()
+
+    # Get approved internship application
+    application = student.application_set.filter(status='Approved').first()
+    if not application:
+        messages.error(request, "You must have an approved internship application.")
+        return redirect('student_dashboard')
+
+    internship = application.internship
+
+    # Determine if student can rate the company
+    can_rate_company = False
+    if internship:
+        # Final evaluation exists if an Evaluation object for this internship exists
+        final_evaluation_exists = Evaluation.objects.filter(internship=internship).exists()
+
+        # Check if the student has already rated this internship
+        has_already_rated = CompanyRating.objects.filter(student=student, internship=internship).exists()
+
+        can_rate_company = final_evaluation_exists and not has_already_rated
+
+    # Organize tasks
+    tasks = Task.objects.filter(student=student).select_related('supervisor').order_by('work_date')
+    workdays_per_week = schedule.workdays_per_week
+    internship_months = int(internship.duration)
+
+    max_allowed_reports = internship_months * 4 * workdays_per_week
+    submitted_reports_count = tasks.filter(status__in=['pending', 'completed']).count()
+    duration_valid = submitted_reports_count < max_allowed_reports
+
+    # Group tasks by week
     grouped_tasks = []
     weekly_tasks = []
-    week_number = 1
-    workdays_per_week = schedule.workdays_per_week
-
-    for i, task in enumerate(tasks):
+    for index, task in enumerate(tasks):
         weekly_tasks.append(task)
-        if len(weekly_tasks) == workdays_per_week:
+        if (index + 1) % workdays_per_week == 0:
             grouped_tasks.append({
-                'week_number': week_number,
+                'week_number': len(grouped_tasks) + 1,
                 'tasks': weekly_tasks,
                 'week_start': weekly_tasks[0].work_date
             })
             weekly_tasks = []
-            week_number += 1
 
-    # Add remaining tasks as incomplete week
     if weekly_tasks:
         grouped_tasks.append({
-            'week_number': week_number,
+            'week_number': len(grouped_tasks) + 1,
             'tasks': weekly_tasks,
             'week_start': weekly_tasks[0].work_date
         })
 
-    return render(request, 'students/view_submitted_tasks.html', {
+    context = {
         'grouped_tasks': grouped_tasks,
         'workdays_per_week': workdays_per_week,
-        'schedule': schedule
-    })
+        'schedule': schedule,
+        'today': today,
+        'duration_valid': duration_valid,
+        'can_rate_company': can_rate_company,
+        'internship': internship,
+    }
+
+    return render(request, 'students/view_submitted_tasks.html', context)
 
 def student_progress_view(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
@@ -3327,6 +3413,25 @@ def student_progress_view(request, student_id):
     tasks = student.tasks.all().order_by('work_date')
     workdays_per_week = schedule.workdays_per_week
 
+    # Get internship from student or approved application
+    internship = student.internship
+    if not internship:
+        approved_app = Application.objects.filter(student=student, status='Approved').first()
+        internship = approved_app.internship if approved_app else None
+
+    # Safely calculate required tasks
+    try:
+        duration_months = int(internship.duration) if internship else 0
+    except (AttributeError, ValueError):
+        duration_months = 0
+
+    required_tasks = workdays_per_week * 4 * duration_months
+    completed_tasks = tasks.count()
+
+    can_submit_final = internship and completed_tasks >= required_tasks
+    existing_evaluation = Evaluation.objects.filter(internship=internship).exists() if internship else False
+
+    # Group tasks by week
     grouped_tasks = []
     weekly_tasks = []
     week_number = 1
@@ -3334,11 +3439,8 @@ def student_progress_view(request, student_id):
     for i, task in enumerate(tasks):
         weekly_tasks.append(task)
         if len(weekly_tasks) == workdays_per_week:
-            # Check if all tasks in the week have supervisor_feedback
             all_have_feedback = all(t.supervisor_feedback for t in weekly_tasks)
-
-            # Check if monthly evaluation exists for this week
-            month_number = (week_number - 1) // 4 + 1  # Calculate month_number based on week_number
+            month_number = (week_number - 1) // 4 + 1
             month_evaluation_exists = MonthlyEvaluation.objects.filter(student=student, month_number=month_number).exists()
 
             grouped_tasks.append({
@@ -3346,12 +3448,11 @@ def student_progress_view(request, student_id):
                 'tasks': weekly_tasks,
                 'is_complete': True,
                 'has_feedback': all_have_feedback,
-                'month_evaluation_exists': month_evaluation_exists,  # Pass this flag to the template
+                'month_evaluation_exists': month_evaluation_exists,
             })
             weekly_tasks = []
             week_number += 1
 
-    # If tasks remain and do not form a full week
     if weekly_tasks:
         all_have_feedback = all(t.supervisor_feedback for t in weekly_tasks)
         month_number = (week_number - 1) // 4 + 1
@@ -3362,16 +3463,22 @@ def student_progress_view(request, student_id):
             'tasks': weekly_tasks,
             'is_complete': False,
             'has_feedback': all_have_feedback,
-            'month_evaluation_exists': month_evaluation_exists,  # Pass this flag
+            'month_evaluation_exists': month_evaluation_exists,
         })
 
     context = {
         'student': student,
         'work_schedule': schedule,
         'grouped_tasks': grouped_tasks,
+        'can_submit_final': can_submit_final and not existing_evaluation,
+        'existing_evaluation': existing_evaluation,
+        'completed_tasks': completed_tasks,
+        'required_tasks': required_tasks,
     }
-    
+
     return render(request, 'Supervisor/student_reported_tasks.html', context)
+
+
 
 def provide_weekly_feedback(request, student_id, week_number):
     student = get_object_or_404(Student, user_id=student_id)
@@ -3482,8 +3589,6 @@ def supervisor_feedback_view(request):
         'tasks': tasks,
         'week_start_date': week_start_date
     })
-
-
 @login_required
 @user_passes_test(lambda u: u.is_advisor)
 def advisor_student_progress(request, student_id):
@@ -3512,26 +3617,31 @@ def advisor_student_progress(request, student_id):
         if len(weekly_tasks) == workdays_per_week:
             supervisor_feedback = all(t.supervisor_feedback for t in weekly_tasks)
             advisor_feedback = all(t.advisor_feedback for t in weekly_tasks)
+            supervisor_feedback_exists = any(t.supervisor_feedback for t in weekly_tasks)
 
             grouped_tasks.append({
                 'week_number': week_number,
                 'tasks': weekly_tasks,
                 'is_complete': True,
                 'supervisor_feedback': supervisor_feedback,
+                'supervisor_feedback_exists': supervisor_feedback_exists,
                 'advisor_feedback': advisor_feedback,
             })
             weekly_tasks = []
             week_number += 1
 
+    # Handle any remaining tasks for the final (incomplete) week
     if weekly_tasks:
         supervisor_feedback = all(t.supervisor_feedback for t in weekly_tasks)
         advisor_feedback = all(t.advisor_feedback for t in weekly_tasks)
+        supervisor_feedback_exists = any(t.supervisor_feedback for t in weekly_tasks)
 
         grouped_tasks.append({
             'week_number': week_number,
             'tasks': weekly_tasks,
             'is_complete': False,
             'supervisor_feedback': supervisor_feedback,
+            'supervisor_feedback_exists': supervisor_feedback_exists,
             'advisor_feedback': advisor_feedback,
         })
 
@@ -3607,9 +3717,6 @@ def advisor_edit_feedback(request, student_id, feedback_id):
         'form': form
     }
     return render(request, 'advisors/edit_feedback.html', context)
-from django.db.models import Count
-from .models import Evaluation, MonthlyEvaluation, Internship
-
 def student_reported_tasks(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
     work_schedule = WorkSchedule.objects.filter(student=student, is_active=True).first()
@@ -3628,89 +3735,100 @@ def student_reported_tasks(request, student_id):
         # ... rest of your existing context
     }
     return render(request, 'Supervisor/student_reported_tasks.html', context)
-from django.shortcuts import get_object_or_404, render, redirect
-from django.core.exceptions import PermissionDenied
-from django.contrib import messages
-from .models import Student, Evaluation
-from .forms import FinalEvaluationForm
-from .utils import get_grouped_tasks  # Assuming you use a function like this
 
+@login_required
 def submit_final_evaluation(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
 
-    # Ensure the user is a supervisor and assigned to the student
-    if not request.user.is_supervisor or request.user.supervisor != student.assigned_supervisor:
-        raise PermissionDenied
+    # Safely get supervisor object
+    try:
+        supervisor = request.user.supervisor
+    except AttributeError:
+        raise PermissionDenied("Only supervisors can submit final evaluations.")
 
-    # Check that the student has an internship assigned
-    if not student.internship:
-        messages.error(request, "This student has no internship assigned!")
+    # Check that this supervisor is assigned to this student
+    if student.assigned_supervisor != supervisor:
+        raise PermissionDenied("You are not assigned to this student.")
+
+    # Get internship: from student or approved application
+    internship = student.internship
+    if not internship:
+        approved_app = Application.objects.filter(student=student, status='Approved').first()
+        internship = approved_app.internship if approved_app else None
+
+    if not internship:
+        messages.error(request, "Student does not have an internship assigned.")
         return redirect('student_reported_tasks', student_id=student_id)
 
-    # Get internship duration in months
+    # Get active work schedule
+    schedule = WorkSchedule.objects.filter(student=student, is_active=True).first()
+    if not schedule:
+        messages.error(request, "No active work schedule found for the student.")
+        return redirect('student_reported_tasks', student_id=student_id)
+
+    workdays_per_week = schedule.workdays_per_week
+    tasks = student.tasks.all()
+
+    # Safely calculate required vs completed tasks
     try:
-        required_months = int(student.internship.duration)
-    except (AttributeError, ValueError, TypeError):
-        required_months = 3
+        duration_months = int(internship.duration)
+    except (AttributeError, ValueError):
+        duration_months = 0
 
-    # Count reported weeks using grouped_tasks logic
-    grouped_tasks = get_grouped_tasks(student)  # Fetch tasks grouped by week
-    completed_weeks = len(grouped_tasks)
-    completed_months = completed_weeks // 4
+    required_tasks = workdays_per_week * 4 * duration_months
+    completed_tasks = tasks.count()
 
-    if completed_months < required_months:
+    if completed_tasks < required_tasks:
         messages.error(
             request,
-            f"Cannot submit final evaluation. Only {completed_months} out of {required_months} months completed."
+            f"Student is expected to complete {required_tasks} tasks, but only {completed_tasks} submitted."
         )
         return redirect('student_reported_tasks', student_id=student_id)
 
+    # Prevent duplicate evaluations
+    if Evaluation.objects.filter(internship=internship).exists():
+        messages.warning(request, "Final evaluation already submitted.")
+        return redirect('student_reported_tasks', student_id=student_id)
+
+    # Handle form submission
     if request.method == 'POST':
         form = FinalEvaluationForm(request.POST)
         if form.is_valid():
             evaluation = form.save(commit=False)
-            evaluation.internship = student.internship
-            evaluation.supervisor = request.user.supervisor
+            evaluation.internship = internship
+            evaluation.supervisor = supervisor
 
+            # Calculate total mark
             fields = [
                 'knowledge', 'problem_solving', 'quality', 'punctuality',
                 'initiative', 'dedication', 'cooperation', 'discipline',
-                'responsibility', 'socialization', 'communication', 'decision_making',
-                'creativity'  # Ensure this field exists in your form
+                'responsibility', 'socialization', 'communication', 'decision_making'
             ]
-
-            total = sum(form.cleaned_data.get(field, 0) for field in fields)
+            total = sum(form.cleaned_data[field] for field in fields)
             evaluation.total_mark = total
             evaluation.overall_performance = (total / (len(fields) * 5)) * 100
-            evaluation.save()
 
+            evaluation.save()
             messages.success(request, "Final evaluation submitted successfully!")
             return redirect('student_reported_tasks', student_id=student_id)
     else:
         form = FinalEvaluationForm()
 
-    return render(request, 'Supervisor/final_evaluation_form.html', {
+    return render(request, 'supervisor/final_evaluation_form.html', {
         'form': form,
         'student': student,
-        'required_months': required_months,
-        'completed_months': completed_months,
+        'required_tasks': required_tasks,
+        'completed_tasks': completed_tasks,
     })
 
-# views.py
+
 @login_required
-@user_passes_test(lambda u: u.is_student)
+@user_passes_test(lambda u: hasattr(u, 'student'))
 def rate_company(request, internship_id):
     internship = get_object_or_404(Internship, id=internship_id)
     student = request.user.student
-    
-    if not internship.final_evaluation_submitted:
-        messages.error(request, "You can rate the company after final evaluation is submitted")
-        return redirect('student_dashboard')
 
-    try:
-        rating = CompanyRating.objects.get(student=student, internship=internship)
-    except CompanyRating.DoesNotExist:
-        rating = None
+    rating = CompanyRating.objects.filter(student=student, internship=internship).first()
 
     if request.method == 'POST':
         form = CompanyRatingForm(request.POST, instance=rating)
@@ -3729,80 +3847,5 @@ def rate_company(request, internship_id):
         'form': form,
         'internship': internship
     })
-#*********chatboot*****************
-from django.shortcuts import render, redirect
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from .models import Internship, CompanyRating
-import pandas as pd
-import joblib
-import xgboost as xgb
-import os
 
-@login_required
-def get_recommendations(request):
-    if request.method == 'POST':
-        try:
-            student = request.user.student
-            
-            # 1. Get internships and prepare features
-            internships = Internship.objects.select_related('company').all()
-            features = [{
-                'student_department': student.department.name.strip().lower(),
-                'student_major': student.major.strip().lower(),
-                'internship_title': i.title.strip().lower(),
-                'company_location': i.company.location.strip().lower(),
-                'company_avg_rating': i.company.average_rating
-            } for i in internships]
 
-            # 2. Create DataFrame
-            df = pd.DataFrame(features)
-            print("📊 Prediction DataFrame Columns:", df.columns.tolist())
-
-            # 3. Load artifacts
-            MODEL_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'ml', 'xgboost_model.bin')
-            ENCODER_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'ml', 'encoders.pkl')
-            
-            if not all(os.path.exists(p) for p in [MODEL_PATH, ENCODER_PATH]):
-                raise FileNotFoundError("❌ Model artifacts missing. Train first!")
-
-            model = xgb.XGBClassifier()
-            model.load_model(MODEL_PATH)
-            encoders = joblib.load(ENCODER_PATH)
-            print("🔑 Encoder Columns:", encoders.keys())
-
-            # 4. Encode features
-            for col, encoder in encoders.items():
-                if col not in df.columns:
-                    raise KeyError(f"🚨 Column '{col}' missing in prediction data")
-                df[col] = encoder.transform(df[col].astype(str))
-
-            # 5. Validate final columns
-            print("🔍 Model Expected Features:", model.feature_names_in_)
-            missing_model_features = set(model.feature_names_in_) - set(df.columns)
-            if missing_model_features:
-                raise KeyError(f"🚨 Features missing: {missing_model_features}")
-
-            # 6. Predict
-            df['prediction_score'] = model.predict_proba(df[model.feature_names_in_])[:, 1]
-            
-            # 7. Get top recommendations
-            top_5 = df.nlargest(5, 'prediction_score')
-            top_ids = [internships[i].id for i in top_5.index]
-            ordered_internships = Internship.objects.filter(id__in=top_ids).in_bulk(top_ids)
-
-            context = {
-                'recommendations': ordered_internships.values(),
-                'preferences': {
-                    'department': student.department.name,
-                    'major': student.major
-                },
-                'predictions': zip(ordered_internships.values(), top_5.prediction_score)
-            }
-            return render(request, 'recommendation_results.html', context)
-
-        except Exception as e:
-            print(f"🔥 Recommendation Error: {str(e)}")
-            return render(request, 'error.html', {'message': str(e)})
-    
-    return redirect('existing_internships')
