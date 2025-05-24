@@ -307,7 +307,6 @@ class BaseUpdateForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30)
     last_name = forms.CharField(max_length=30)
     phone = forms.CharField(max_length=20)
-    profile_image = forms.ImageField(required=False)
 
     # Add password field for updating password
     password = forms.CharField(
@@ -318,7 +317,7 @@ class BaseUpdateForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'first_name', 'last_name', 'phone', 'profile_image']
+        fields = ['username', 'password', 'email', 'first_name', 'last_name', 'phone']
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -451,10 +450,6 @@ class CompanyAdminUpdateForm(BaseUpdateForm):
         return user
 #**********Update Forms************=========
 
-
-
-
-    
 #**********CRUD Forms************ 
 class UserUpdateForm(forms.ModelForm):
     class Meta:
@@ -465,16 +460,6 @@ class DepartmentForm(forms.ModelForm):
     class Meta:
         model = Department
         fields = ['name', 'description']
-# class ApplicationForm(forms.ModelForm):
-#     class Meta:
-#         model = Application
-#         fields = '__all__'
-#         widgets = {
-#             'student': forms.Select(attrs={'class': 'form-select'}),
-#             'company': forms.Select(attrs={'class': 'form-select'}),
-#         }
-
-
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
@@ -572,13 +557,6 @@ class StudentForm(forms.ModelForm):
 def make_field_name(prefix, text, index):
     # Keep it simple and unique using index
     return f"{prefix}_qual_{index}"
-
-
-from django import forms
-from .models import Application
-from .utils import make_field_name  # your own helper
-from django import forms
-from .models import Application
 
 # Define make_field_name to accept 3 arguments
 def make_field_name(prefix, text, index):
@@ -710,6 +688,26 @@ class AdvisorForm(forms.ModelForm):
             user.save()
             advisor.save()
         return advisor
+
+class DepartmentHeadAdvisorUpdateForm(BaseUpdateForm):
+    office_location = forms.CharField(max_length=255)
+
+    def __init__(self, *args, **kwargs):
+        self.department = kwargs.pop('department', None)  # passed from the view
+        super().__init__(*args, **kwargs)
+        if hasattr(self.instance, 'advisor'):
+            self.fields['office_location'].initial = self.instance.advisor.office_location
+
+    def save(self, commit=True):
+        user = super().save(commit)
+        advisor = getattr(user, 'advisor', None)
+        if advisor:
+            advisor.office_location = self.cleaned_data['office_location']
+            if self.department:
+                advisor.department = self.department
+            advisor.save()
+        return user
+
 class DepartmentHeadForm(FullCRUDForm):
     class Meta:
         model = DepartmentHead
@@ -742,35 +740,31 @@ class SupervisorForm(FullCRUDForm):
             )
 class AssignSupervisorForm(forms.Form):
     student = forms.ModelChoiceField(
-        queryset=Student.objects.none(),  # Initially empty, will be populated in the view
+        queryset=Student.objects.none(),
         label="Select Student",
         widget=forms.Select(attrs={'class': 'form-control'}),
         required=True
     )
     supervisor = forms.ModelChoiceField(
-        queryset=Supervisor.objects.none(),  # Initially empty, will be populated in the view
+        queryset=Supervisor.objects.none(),
         label="Select Supervisor",
         widget=forms.Select(attrs={'class': 'form-control'}),
         required=True
     )
 
     def __init__(self, *args, **kwargs):
-        # Get the company from the kwargs
         company = kwargs.pop('company', None)
         super().__init__(*args, **kwargs)
 
-        # Populate the student and supervisor querysets based on the company
         if company:
-            # Students with approved applications for the company
+            # ✅ Filter students without an assigned supervisor
             self.fields['student'].queryset = Student.objects.filter(
                 application__internship__company=company,
-                application__status='Approved'
+                application__status='Approved',
+                assigned_supervisor__isnull=True
             ).distinct()
 
-            # Supervisors for the company
             self.fields['supervisor'].queryset = Supervisor.objects.filter(company=company)
-
-
 
 class InternshipForm(forms.ModelForm):
     class Meta:
