@@ -9,7 +9,7 @@
                 <div class="col-md-8">
                     <div class="telegram-chat-container">
                         <!-- Chat Header -->
-                        <div class="chat-header">
+                         <div class="chat-header">
                             <div class="chat-info">
                                 <div class="avatar">
                                     {% if receiver.profile.picture %}
@@ -30,8 +30,8 @@
                             </div>
                         </div>
 
-                       <!-- Messages Container -->
-                    <div class="messages-container" id="chat-messages">
+                        <!-- Messages Container -->
+                       <div class="messages-container" id="chat-messages">
                         {% for message in chat_messages %}
                         <div class="message-wrapper {% if message.sender == request.user %}outgoing{% else %}incoming{% endif %}" 
                             id="message-{{ message.id }}">
@@ -123,8 +123,9 @@
                         </div>
                         {% endfor %}
                     </div>
-                       <!-- Message Input -->
-                    <div class="message-input-container">
+
+                        <!-- Message Input -->
+                        <div class="message-input-container">
                         <form id="chat-form" method="POST" action="{% url 'private_chat' receiver.id %}" enctype="multipart/form-data">
                             {% csrf_token %}
                             <div class="input-group" style="display: flex; align-items: center; width: 100%;">
@@ -140,27 +141,11 @@
                             <div id="file-preview" class="mt-2"></div>
                         </form>
                     </div>
-                        
                     </div>
                 </div>
             </div>
         </div>
     </section>
-</div>
-
-<!-- Media Modal -->
-<div class="modal fade" id="mediaModal">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body">
-                <button type="button" class="btn-close" data-dismiss="modal">
-                    <i class="fas fa-times"></i>
-                </button>
-                <img id="modal-image" class="media-content">
-                <video id="modal-video" class="media-content" controls></video>
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -702,4 +687,5 @@
         }
     }
 </script>
+
 {% endblock %}
