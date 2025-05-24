@@ -38,7 +38,12 @@ urlpatterns = [
     path('company-admin/applications/', views.manage_applications, name='manage_applications'),
     path('company-admin/toggle-applications/', views.toggle_applications, name='toggle_applications'),
     path('assign-supervisor-to-students/', views.assign_supervisor_to_students, name='assign_supervisor_to_students'),
-
+    # urls.py
+    # urls.py
+    path('advisor/student/<int:student_id>/feedback/<int:week_number>/', views.advisor_provide_feedback, name='provide_advisor_feedback'),
+    path('advisor/student/<int:student_id>/feedback/<int:feedback_id>/edit/', views.advisor_edit_feedback, name='edit_advisor_feedback'),
+    path('department-head/advisor/<int:advisor_id>/students/', views.advisor_assigned_student_departmenet_head, name='advisor_assigned_student'),
+    path('advisor/student/<int:student_id>/progress/', views.advisor_student_progress, name='advisor_student_progress'),
     # User Registration URLs
     path('company/register/', views.company_register, name='register_company'),
     path('company-admin/register/', views.company_admin_register, name='company_admin_register'),
@@ -57,7 +62,6 @@ urlpatterns = [
     path('student/<int:student_user_id>/assign_advisor/', views.assign_advisor, name='assign_advisor'),
     path('student/<int:user_id>/export/', views.export_student_progress, name='export_student_progress'),
     path('student/<int:user_id>/feedback/', views.submit_feedback, name='submit_feedback'),
-    path('student/<int:user_id>/progress/', views.view_student_progress, name='view_student_progress'),
     path('student-management/', views.student_management, name='student_management'),
     path('student/add/', views.add_student, name='add_student'),
     path('student/<int:student_id>/view/', views.view_student, name='view_student'),
@@ -216,7 +220,6 @@ urlpatterns = [
     # Group Chat URLs
     path('company/<int:pk>/', views.CompanyDetailView.as_view(), name='company_detail'),
     path('group/<int:group_id>/send/', views.send_group_message, name='send_group_message'),
-    path('get-recommendations/', views.get_recommendations, name='get_recommendations'),
     path('clear-chat/<int:user_id>/', views.clear_chat_history, name='clear_chat_history'),
     
     path('api/', include(router.urls)),
@@ -232,7 +235,8 @@ path('groups/<int:group_id>/manage/', views.manage_group, name='manage_group'),
 path('supervisor/<int:student_id>/evaluation/month/<int:month_number>/edit/',views.edit_monthly_evaluation,name='edit_monthly_evaluation'
 ),
 path('communications_supervisors/', views.communication_dash, name='communication_dash'),
- path('internship/<int:internship_id>/submit-final-evaluation/', views.submit_final_evaluation, name='submit_final_evaluation'),
+path('student/<int:student_id>/submit-final-evaluation/', views.submit_final_evaluation, name='submit_final_evaluation'),
+
 # urls.py
 path('rate-company/<int:internship_id>/', views.rate_company, name='rate_company'),
 path('internship/<int:pk>/', views.internship_detail, name='internship_detail'),
