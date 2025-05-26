@@ -3,69 +3,132 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Daily Work Reports</h2>
-    <p>Workdays per week: {{ work_schedule.workdays_per_week }}</p>
+    <h2 class="mb-4">Daily Work Reports for {{ student.user.get_full_name }}</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt mr-2"></i>
+                Internship Progress Overview
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title">Student Progress Tracking</h3>
+                        <div class="card-tools">
+                            {% if can_submit_final %}
+                            <a href="{% url 'submit_final_evaluation' student.user_id %}" 
+                               class="btn btn-danger btn-sm ml-2"
+                               title="Submit Final Evaluation">
+                                <i class="fas fa-file-contract"></i> Final Evaluation
+                            </a>
+                            {% elif existing_evaluation %}
+                            <span class="badge bg-success ml-2">
+                                <i class="fas fa-check"></i> Evaluation Submitted
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning ml-2">
+                                {{ completed_tasks }}/{{ required_tasks }} Tasks
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-striped" style="border-collapse: collapse;">
+        <table class="table table-bordered table-hover">
             <thead class="thead-dark">
                 <tr>
-                    <th>Week</th>
-                    <th>Day</th>
-                    <th>Date</th>
-                    <th>Work Performed</th>
-                    <th>Supervisor Feedback</th>
-                    <th>Monthly Evaluation</th>
+                    <th style="width: 8%">Week</th>
+                    <th style="width: 12%">Day</th>
+                    <th style="width: 12%">Date</th>
+                    <th style="width: 28%">Work Performed</th>
+                    <th style="width: 20%">Weekly Feedback</th>
+                    <th style="width: 20%">Monthly Evaluation</th>
                 </tr>
             </thead>
             <tbody>
                 {% for week in grouped_tasks %}
-                <tr>
-                    <td rowspan="{{ week.tasks|length }}" style="border: 1px solid #dee2e6; background-color: #f8f9fa;">
-                        Week {{ week.week_number }}
+                <tr class="{% if week.is_complete %}table-success{% else %}table-warning{% endif %}">
+                    <td rowspan="{{ week.tasks|length }}" class="align-middle text-center">
+                        <div class="font-weight-bold">Week {{ week.week_number }}</div>
+                        <small class="text-muted">{{ week.week_start|date:"M d" }} - {{ week.week_end|date:"M d" }}</small>
                     </td>
+                    
                     {% for task in week.tasks %}
                         {% if not forloop.first %}<tr>{% endif %}
-                        <td style="border: 1px solid #dee2e6;">{{ task.work_date|date:"l" }}</td>
-                        <td style="border: 1px solid #dee2e6;">{{ task.work_date|date:"Y-m-d" }}</td>
-                        <td style="border: 1px solid #dee2e6;">{{ task.description }}</td>
-
-                        {% if forloop.first %}
-                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center" style="border: 1px solid #dee2e6; background-color: #f8f9fa;">
-                            {% if week.is_complete %}
-                                {% if week.has_feedback %}
-                                    <div class="text-start">
-                                        <strong>Feedback:</strong>
-                                        <p class="text-muted small">{{ week.tasks.0.supervisor_feedback }}</p>
-                                        <a href="{% url 'edit_weekly_feedback' student_id=student.pk week_number=forloop.parentloop.counter %}" class="btn btn-sm btn-outline-secondary mt-1">Edit</a>
-                                    </div>
-                                {% else %}
-                                    <a href="{% url 'provide_weekly_feedback' student_id=student.pk week_number=week.week_number %}" 
-                                       class="btn btn-sm btn-primary">
-                                       Give Feedback
-                                    </a>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted">
-                                    {{ week.tasks|length }}/{{ work_schedule.workdays_per_week }} days
-                                </span>
+                        <td>{{ task.work_date|date:"l" }}</td>
+                        <td>{{ task.work_date|date:"Y-m-d" }}</td>
+                        <td class="task-description">
+                            {{ task.description|truncatechars:100 }}
+                            {% if task.description|length > 100 %}
+                            <a href="#" class="text-primary" data-toggle="modal" data-target="#taskModal{{ task.id }}">
+                                (Read More)
+                            </a>
                             {% endif %}
                         </td>
 
-                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center" style="border: 1px solid #dee2e6; background-color: #f8f9fa;">
+                        {% if forloop.first %}
+                        <td rowspan="{{ week.tasks|length }}" class="align-middle">
+                            <div class="feedback-container">
+                                {% if week.is_complete %}
+                                    {% if week.has_feedback %}
+                                    <div class="feedback-content">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong>Feedback:</strong>
+                                            <a href="{% url 'edit_weekly_feedback' student_id=student.pk week_number=week.week_number %}" 
+                                               class="btn btn-sm btn-outline-secondary">
+                                               <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                        <div class="feedback-text">
+                                            "{{ week.tasks.0.supervisor_feedback|default:'No feedback provided' }}"
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <a href="{% url 'provide_weekly_feedback' student_id=student.pk week_number=week.week_number %}" 
+                                       class="btn btn-primary btn-block">
+                                       <i class="fas fa-comment-medical"></i> Provide Feedback
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                   
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                        style="width: {% widthratio week.tasks|length work_schedule.workdays_per_week 100 %}%">
+                                        {{ week.tasks|length }}/{{ work_schedule.workdays_per_week }}
+                                    </div>
+                                </div>
+
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td rowspan="{{ week.tasks|length }}" class="align-middle text-center">
                             {% if week.week_number|divisibleby:4 and week.is_complete %}
                                 {% if week.month_evaluation_exists %}
+                                <div class="btn-group">
                                     <a href="{% url 'view_monthly_evaluation' student_id=student.pk month_number=week.week_number|div:4|add:1 %}" 
-                                       class="btn btn-sm btn-outline-success">
-                                       Evaluated
+                                       class="btn btn-success btn-sm">
+                                       <i class="fas fa-check-circle"></i> Month {{ week.week_number|div:4|add:1 }}
                                     </a>
-                                    <a href="{% url 'edit_monthly_evaluation' student_id=student.pk month_number=month.month_number %}" 
-                                       class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    <a href="{% url 'edit_monthly_evaluation' student_id=student.pk month_number=week.week_number|div:4|add:1 %}" 
+                                       class="btn btn-outline-secondary btn-sm">
+                                       <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
                                 {% else %}
-                                    <a href="{% url 'submit_monthly_evaluation' student_id=student.pk month_number=week.week_number|div:4|add:1 %}" 
-                                       class="btn btn-sm btn-success">
-                                       Monthly Evaluation
-                                    </a>
+                                <a href="{% url 'submit_monthly_evaluation' student_id=student.pk month_number=week.week_number|div:4|add:1 %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                   <i class="fas fa-file-alt"></i> Evaluate Month {{ week.week_number|div:4|add:1 }}
+                                </a>
                                 {% endif %}
                             {% else %}
                                 <span class="text-muted">-</span>
@@ -77,11 +140,71 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center">No reports submitted yet</td>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-clipboard-list fa-2x mb-3"></i><br>
+                        No reports submitted yet
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
+
+    {% with grouped_tasks|length|div:4 as completed_months %}
+    {% if completed_months >= student.internship.duration %}
+        {# Final Evaluation Section #}
+        <div class="final-evaluation-section mt-5 pt-4 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>
+                    <i class="fas fa-graduation-cap mr-2"></i>
+                    Final Internship Evaluation
+                </h4>
+                {% if student.internship.evaluation_set.exists %}
+                <span class="badge badge-success">
+                    <i class="fas fa-check"></i> Completed
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {% if student.internship.evaluation_set.exists %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Final Evaluation Submitted</h5>
+                            <p class="card-text text-muted">
+                                Overall Performance: {{ student.internship.evaluation_set.first.overall_performance|floatformat:1 }}%
+                            </p>
+                        </div>
+                        <div class="btn-group">
+                            <a href="{% url 'view_final_evaluation' student_id=student.pk %}" 
+                               class="btn btn-outline-primary">
+                               <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="{% url 'submit_final_evaluation' student_id=student.pk %}" 
+                               class="btn btn-outline-secondary">
+                               <i class="fas fa-edit"></i> Edit
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="lead">Enough weekly reports completed!</p>
+                        <a href="{% url 'submit_final_evaluation' student_id=student.pk %}" 
+                           class="btn btn-primary btn-lg">
+                           <i class="fas fa-file-signature"></i> Submit Final Evaluation
+                        </a>
+                        <p class="text-muted mt-2">
+                            Available once total months (weeks ÷ 4) match internship duration.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endwith %}
+
+
+
 {% endblock %}
