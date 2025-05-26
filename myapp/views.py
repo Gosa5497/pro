@@ -32,7 +32,11 @@ import openai
 from .serializers import *
 from .models import UserRole
 from .forms import *
-    
+from django.contrib.auth import authenticate
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json  
+from django.db.models import Count
 def home(request):
     # Redirect authenticated users
     if request.user.is_authenticated:
@@ -653,8 +657,13 @@ def private_chat_list(request, role):
         'base_template': base_template
     })
 
+
+from django.core.files.storage import default_storage
+
+
 @login_required
 def private_chat(request, user_id):
+    # Determine base template based on user role
     if request.user.is_superuser:
         base_template = "admin/admin_base.html"
     elif getattr(request.user, "is_department_head", False):
@@ -674,7 +683,7 @@ def private_chat(request, user_id):
     sender = request.user
     allowed = False
 
-    # Department Head
+    # Department Head access check
     if hasattr(sender, 'departmenthead'):
         department = sender.departmenthead.department
         if hasattr(receiver, 'supervisor'):
@@ -692,7 +701,7 @@ def private_chat(request, user_id):
         elif hasattr(receiver, 'advisor'):
             allowed = department == receiver.advisor.department
 
-    # Advisor
+    # Advisor access check
     elif hasattr(sender, 'advisor'):
         advisor = sender.advisor
         if hasattr(receiver, 'departmenthead'):
@@ -703,7 +712,7 @@ def private_chat(request, user_id):
                 assigned_supervisor=receiver.supervisor
             ).exists()
 
-    # Supervisor
+    # Supervisor access check
     elif hasattr(sender, 'supervisor'):
         supervisor = sender.supervisor
         if hasattr(receiver, 'advisor'):
@@ -717,7 +726,7 @@ def private_chat(request, user_id):
                 department=receiver.departmenthead.department
             ).exists()
 
-    # Company Admin
+    # Company Admin access check
     elif hasattr(sender, 'companyadmin'):
         company = sender.companyadmin.company
         if hasattr(receiver, 'departmenthead'):
@@ -731,7 +740,7 @@ def private_chat(request, user_id):
         messages.error(request, "You are not allowed to chat with this user.")
         return redirect('dashboard_redirect')
 
-    # Handle POST
+    # Handle POST request to send a message
     if request.method == 'POST':
         message_content = request.POST.get('message')
         file = request.FILES.get('file')
@@ -758,16 +767,24 @@ def private_chat(request, user_id):
             messages.warning(request, "Message cannot be empty!")
         return redirect('private_chat', user_id=user_id)
 
+    # Get chat messages and add 'file_exists' attribute to each
     chat_messages = PrivateMessage.objects.filter(
         Q(sender=sender, receiver=receiver) |
         Q(sender=receiver, receiver=sender)
     ).order_by('timestamp')
+
+    for msg in chat_messages:
+        if msg.message_type == 'file' and msg.file:
+            msg.file_exists = default_storage.exists(msg.file.name)
+        else:
+            msg.file_exists = False
 
     return render(request, 'departement_head/private_chat.html', {
         'receiver': receiver,
         'chat_messages': chat_messages,
         'base_template': base_template
     })
+
 @login_required
 def clear_chat_history(request, user_id):
     """
@@ -1219,10 +1236,7 @@ def profile(request, user_id=None):
     }
 
     return render(request, "departement_head/profile.html", context)
-
-
-
-
+from django.contrib.auth import update_session_auth_hash
 @login_required
 def edit_profile(request):
     user = request.user
@@ -1241,9 +1255,11 @@ def edit_profile(request):
     elif getattr(user, "is_company_admin", False):
         base_template = "Company_Admin/base.html"
     else:
-        base_template = "base.html"  # Default fallback template
+        base_template = "base.html"
 
     if request.method == "POST":
+        # Update basic profile info
+        user.username = request.POST.get("username")
         user.email = request.POST.get("email")
         user.phone = request.POST.get("phone")
         user.bio = request.POST.get("bio")
@@ -1251,16 +1267,45 @@ def edit_profile(request):
 
         if "profile_image" in request.FILES:
             user.profile_image = request.FILES["profile_image"]
-            print("Profile image uploaded.")
+
+        current_password = request.POST.get("current_password")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if current_password or new_password or confirm_password:
+            if not user.check_password(current_password):
+                messages.error(request, "The current password you entered is incorrect.")
+                return redirect("edit_profile")
+
+            if new_password != confirm_password:
+                messages.error(request, "New password and confirmation do not match.")
+                return redirect("edit_profile")
+
+            user.set_password(new_password)
+            update_session_auth_hash(request, user)
+            messages.success(request, "Password updated successfully.")
 
         user.save()
-
         messages.success(request, "Profile updated successfully!")
         return redirect("profile")
 
-    return render(request, "departement_head/edit_profile.html", {"base_template": base_template})
+    return render(request, "departement_head/edit_profile.html", {
+        "base_template": base_template,
+        "user": user,
+    })
 
+@csrf_exempt
+def verify_current_password(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        current_password = data.get("current_password")
+        user = request.user
+        if user.check_password(current_password):
+            return JsonResponse({"valid": True})
+        else:
+            return JsonResponse({"valid": False})
 
+    
 class AdminRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser
@@ -2046,12 +2091,6 @@ def is_department_head(user):
 
 def is_admin(user):
     return user.is_authenticated and user.is_superuser
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Count, Avg, OuterRef, Subquery, Value, Exists
-from django.db.models.functions import Coalesce
-from django.shortcuts import render
-from .models import Department, Student, Advisor, Supervisor, Company, Internship, Notification, User, DepartmentHead
-
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
@@ -2273,7 +2312,7 @@ def delete_company(request, company_id):
     return redirect('company_management')
 def is_department_head(user):
     return user.is_authenticated and hasattr(user, 'is_department_head') and user.is_department_head
-from django.db.models import Count, Q
+
 @login_required
 @user_passes_test(is_department_head)
 def view_company(request, company_id):
@@ -2283,11 +2322,11 @@ def view_company(request, company_id):
     # Filter internships for the company
     internships = Internship.objects.filter(company=company)
 
-    # Annotate each internship with number of approved applications from the same department
+    # ✅ Correct the related name from 'application' to 'applications'
     internships = internships.annotate(
         approved_applications=Count(
-            'application',
-            filter=Q(application__status='Approved') & Q(application__student__department=department)
+            'applications',
+            filter=Q(applications__status='Approved') & Q(applications__student__department=department)
         )
     )
 
@@ -2299,8 +2338,6 @@ def view_company(request, company_id):
         'feedbacks': feedbacks,
     }
     return render(request, 'company/view_company.html', context)
-
-
 @login_required
 def submit_company_feedback(request):
     if request.method == 'POST':
@@ -2509,39 +2546,41 @@ def view_monthly_evaluation(request, evaluation_id):
     pdf.save()
     buffer.seek(0)
     return HttpResponse(buffer, content_type='application/pdf')
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib import messages
-from django.core.exceptions import PermissionDenied
-from django.db.models import Avg
-
 @login_required
-@user_passes_test(lambda u: u.is_department_head)
+@user_passes_test(lambda u: hasattr(u, 'departmenthead'))
 def view_student_progress(request, user_id):
+    # Fetch student
     student = get_object_or_404(Student, user__id=user_id)
-    department_head = request.user.departmenthead
-    application = student.application_set.filter(status='Approved').first()
-    if not application:
-        messages.error(request, "You must have an approved internship application.")
-        return redirect('student_dashboard')
 
-    internship = application.internship
-    # Ensure student belongs to the same department
+    # Ensure the user is the department head of the same department
+    try:
+        department_head = request.user.departmenthead
+    except Exception:
+        messages.error(request, "You must be a department head to view this page.")
+        return redirect('student_management')
+
     if student.department != department_head.department:
         raise PermissionDenied("You can only view students from your department.")
 
-    # Task data
-    tasks = Task.objects.filter(student=student).order_by('work_date')
+    # Get approved internship
+    application = Application.objects.filter(student=student, status='Approved').first()
+    if not application:
+        messages.error(request, "Student has no approved internship application.")
+        return redirect('student_management')
+
+    internship = application.internship
     internship_months = int(internship.duration)
 
-    # Get workdays_per_week before using it
+    # Get active schedule
     schedule = WorkSchedule.objects.filter(student=student, is_active=True).first()
     workdays_per_week = schedule.workdays_per_week if schedule else 5
 
+    # Task tracking
+    tasks = Task.objects.filter(student=student).order_by('work_date')
     completed_tasks = internship_months * 4 * workdays_per_week
     pending_tasks = tasks.filter(status='pending').count()
 
-    # Group tasks by week
+    # Group tasks by weeks
     grouped_tasks = []
     weekly_tasks = []
     week_number = 1
@@ -2553,7 +2592,7 @@ def view_student_progress(request, user_id):
                 'week_number': week_number,
                 'tasks': weekly_tasks,
                 'week_start': weekly_tasks[0].work_date,
-                'is_complete': all(t.status == 'completed' for t in weekly_tasks)
+                'is_complete': all(t.status == 'completed' for t in weekly_tasks),
             })
             weekly_tasks = []
             week_number += 1
@@ -2566,35 +2605,39 @@ def view_student_progress(request, user_id):
             'is_complete': False
         })
 
-    # Monthly Evaluations
+    # Monthly evaluations
     evaluations = MonthlyEvaluation.objects.filter(student=student).order_by('created_at')
     evaluations_count = evaluations.count()
 
-    if evaluations_count > 0:
-        average_score = evaluations.aggregate(Avg('total_score'))['total_score__avg']
-        avg_punctuality = evaluations.aggregate(Avg('punctuality'))['punctuality__avg']
-        avg_reliability = evaluations.aggregate(Avg('reliability'))['reliability__avg']
-        avg_communication = evaluations.aggregate(Avg('communication'))['communication__avg']
-        avg_technical_skills = evaluations.aggregate(Avg('technical_skills'))['technical_skills__avg']
-        avg_responsibility = evaluations.aggregate(Avg('responsibility'))['responsibility__avg'] / 3
-        avg_teamwork = evaluations.aggregate(Avg('team_quality'))['team_quality__avg'] / 4
+    if evaluations_count:
+        aggregated = evaluations.aggregate(
+            average_score=Avg('total_score'),
+            avg_punctuality=Avg('punctuality'),
+            avg_reliability=Avg('reliability'),
+            avg_communication=Avg('communication'),
+            avg_technical_skills=Avg('technical_skills'),
+            avg_responsibility=Avg('responsibility'),
+            avg_team_quality=Avg('team_quality')
+        )
+
+        average_score = aggregated['average_score'] or 0
+        avg_punctuality = aggregated['avg_punctuality'] or 0
+        avg_reliability = aggregated['avg_reliability'] or 0
+        avg_communication = aggregated['avg_communication'] or 0
+        avg_technical_skills = aggregated['avg_technical_skills'] or 0
+        avg_responsibility = (aggregated['avg_responsibility'] or 0) / 3
+        avg_teamwork = (aggregated['avg_team_quality'] or 0) / 4
+
         evaluation_dates = [e.month for e in evaluations]
         evaluation_scores = [e.total_score for e in evaluations]
     else:
-        average_score = 0
-        avg_punctuality = avg_reliability = avg_communication = 0
+        average_score = avg_punctuality = avg_reliability = avg_communication = 0
         avg_technical_skills = avg_responsibility = avg_teamwork = 0
         evaluation_dates = []
         evaluation_scores = []
 
-    # Final Evaluation (Supervisor Evaluation)
-    # Get internship either from student or approved application
-    internship = student.internship
-    if not internship:
-        approved_app = Application.objects.filter(student=student, status='Approved').first()
-        internship = approved_app.internship if approved_app else None
-
-    final_evaluation = Evaluation.objects.filter(internship=internship).first() if internship else None
+    # Final evaluation by supervisor
+    final_evaluation = Evaluation.objects.filter(internship=internship).first()
 
     context = {
         'student': student,
@@ -2603,22 +2646,21 @@ def view_student_progress(request, user_id):
         'average_score': average_score,
         'evaluation_dates': evaluation_dates,
         'evaluation_scores': evaluation_scores,
-        'avg_punctuality': avg_punctuality or 0,
-        'avg_reliability': avg_reliability or 0,
-        'avg_communication': avg_communication or 0,
-        'avg_technical_skills': avg_technical_skills or 0,
-        'avg_responsibility': avg_responsibility or 0,
-        'avg_teamwork': avg_teamwork or 0,
+        'avg_punctuality': avg_punctuality,
+        'avg_reliability': avg_reliability,
+        'avg_communication': avg_communication,
+        'avg_technical_skills': avg_technical_skills,
+        'avg_responsibility': avg_responsibility,
+        'avg_teamwork': avg_teamwork,
         'grouped_tasks': grouped_tasks,
         'workdays_per_week': workdays_per_week,
         'completed_tasks': completed_tasks,
         'pending_tasks': pending_tasks,
         'all_tasks': tasks,
-        'final_evaluation': final_evaluation,  
+        'final_evaluation': final_evaluation,
     }
 
     return render(request, 'students/view_student_progress.html', context)
-
 @login_required
 def add_student(request):
     user = request.user
