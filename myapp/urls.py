@@ -237,7 +237,7 @@ path('supervisor/<int:student_id>/evaluation/month/<int:month_number>/edit/',vie
 ),
 path('communicationss/', views.communication_dash, name='communication_dash'),
 path('student/<int:student_id>/submit-final-evaluation/', views.submit_final_evaluation, name='submit_final_evaluation'),
-
+path('verify-password/', views.verify_current_password, name='verify_current_password'),
 # urls.py
 path('rate-company/<int:internship_id>/', views.rate_company, name='rate_company'),
 path('internship/<int:pk>/', views.internship_detail, name='internship_detail'),
