@@ -31,13 +31,30 @@ def div(value, arg):
         return int(value) // int(arg)
     except (ValueError, ZeroDivisionError):
         return 0
+from django import template
+
+register = template.Library()
+
 @register.filter
-def subtract(value, arg):
-    try:
-        return int(value) - int(arg)
-    except (TypeError, ValueError):
-        return 0
+def split_by(value, delimiter=','):
+    """Split a string by a given delimiter."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(delimiter)]
+from django import template
+
+register = template.Library()
+
 @register.filter
 def get_item(dictionary, key):
-    """Returns an item from the dictionary by its key."""
     return dictionary.get(key)
+from django import template
+
+register = template.Library()
+
+@register.filter
+def div(value, divisor):
+    try:
+        return int(value) // int(divisor)
+    except (ValueError, ZeroDivisionError):
+        return 0
