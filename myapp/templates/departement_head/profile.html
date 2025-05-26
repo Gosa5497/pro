@@ -1,185 +1,173 @@
-{% extends base_template %}
+{% extends base_template %} 
 {% load static %}
 
-{% block title %}Edit Profile - {{ user.get_full_name|default:user.username }}{% endblock %}
-
+{% block title %}Profile - {{ user.get_full_name|default:user.username }}{% endblock %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/edit_profile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}?v=1.1"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> 
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap">
 {% endblock %}
-
+<style>
+    li i {
+        font-size: 1.2rem;
+        color: #007bff; /* Bootstrap primary color */
+    }
+</style>
 {% block content %}
-<div class="page-content-area edit-profile-page">
-    <section class="profile-page__header">
-        <div class="container-fluid">
-            <div class="row mb-2 align-items-center">
-                <div class="col-sm-6">
-                    <h1 class="profile-page__title">Edit Profile</h1>
-                </div>
-            </div>
-        </div>
-    </section>
+<div class="profile-container"> 
 
-    <section class="edit-profile-page__content">
-        <div class="container-fluid">
-            <div class="profile-page__row-container">
-                <div class="col-md-10 col-lg-8">
-                    <div class="profile-card edit-profile-card">
-                        <div class="profile-card__header">
-                            <h3 class="profile-card__title"><i class="fas fa-user-edit"></i> Profile Information</h3>
+    <!-- Profile Header -->
+    <header class="profile-header">
+        <h1 class="profile-title">User Profile</h1>
+        {% if is_own_profile %}
+    <a href="{% url 'edit_profile' %}" class="btn btn-edit-profile" aria-label="Edit Profile">
+        <i class="fas fa-pencil-alt" aria-hidden="true"></i> Edit Profile
+    </a>
+      {% endif %}
+
+    </header>
+
+    <!-- Profile Content Grid -->
+    <div class="profile-content-grid">
+
+        <!-- Profile Sidebar Card -->
+        <aside class="profile-card profile-sidebar-card">
+            <div class="profile-avatar-section">
+                <div class="avatar-wrapper avatar-xl">
+                    {% if user.profile_image and user.profile_image.url %}
+                        <img class="avatar-image"
+                             src="{{ user.profile_image.url }}"
+                             alt="{{ user.get_full_name|default:user.username }}'s Profile Picture">
+                    {% else %}
+                        <div class="avatar-initials"
+                             data-initials="{{ user.get_full_name|default:user.username|first|upper }}">
                         </div>
-
-                        <form method="POST" enctype="multipart/form-data" novalidate>
-                            {% csrf_token %}
-                            <div class="profile-card__body">
-                                {% if messages %}
-                                    {% for message in messages %}
-                                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                                    {% endfor %}
-                                {% endif %}
-
-                                <!-- Personal Info -->
-                                <div class="form-group">
-                                    <label for="id_username">Username</label>
-                                    <input type="text" name="username" class="form-control" value="{{ user.username }}" id="id_username" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="id_email">Email</label>
-                                    <input type="email" name="email" class="form-control" value="{{ user.email }}" id="id_email" readonly>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="id_phone">Phone</label>
-                                    <input type="text" name="phone" class="form-control" value="{{ user.phone|default:'' }}" id="id_phone" maxlength="25">
-                                </div>
-
-                                <!-- Profile Image -->
-                                <div class="form-group">
-                                    <label for="profileImageInput">Profile Picture</label>
-                                    <input type="file" name="profile_image" class="form-control-file" id="profileImageInput" accept="image/*">
-                                    <div class="edit-profile-card__image-preview-wrapper mt-2">
-                                        {% if user_profile.profile_image and user_profile.profile_image.url %}
-                                            <img src="{{ user_profile.profile_image.url }}" alt="Current Profile Picture" class="edit-profile-card__current-image" id="imagePreviewCurrent">
-                                        {% endif %}
-                                        <img src="#" alt="New Image Preview" class="edit-profile-card__new-image-preview" id="imagePreview" style="display: none;">
-                                    </div>
-                                </div>
-
-                                <!-- Bio -->
-                                <div class="form-group">
-                                    <label for="id_bio">Bio</label>
-                                    <textarea name="bio" class="form-control" rows="4" id="id_bio">{{ user_profile.bio|default:'' }}</textarea>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="id_address">Address</label>
-                                    <textarea name="address" class="form-control" rows="3" id="id_address">{{ user_profile.address|default:'' }}</textarea>
-                                </div>
-
-                                <hr>
-
-                                <!-- Password Section -->
-                                <h4 class="mt-4">Change Password</h4>
-
-                                <div class="form-group">
-                                    <label for="id_current_password">Current Password</label>
-                                    <div class="input-group">
-                                        <input type="password" name="current_password" class="form-control" id="id_current_password" autocomplete="current-password">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" type="button" id="toggle_current_password"><i class="fas fa-eye"></i></button>
-                                        </div>
-                                        <div class="input-group-append">
-                                            <button type="button" id="verify-password-btn" class="btn btn-secondary">Verify</button>
-                                        </div>
-                                    </div>
-                                    <div id="password-check-result" class="mt-1 text-danger"></div>
-                                </div>
-
-                                <div id="new-password-section" style="display: none;">
-                                    <div class="form-group">
-                                        <label for="id_new_password">New Password</label>
-                                        <div class="input-group">
-                                            <input type="password" name="new_password" class="form-control" id="id_new_password" autocomplete="new-password">
-                                            <div class="input-group-append">
-                                                <button class="btn btn-outline-secondary" type="button" id="toggle_new_password"><i class="fas fa-eye"></i></button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="id_confirm_password">Confirm New Password</label>
-                                        <div class="input-group">
-                                            <input type="password" name="confirm_password" class="form-control" id="id_confirm_password" autocomplete="new-password">
-                                            <div class="input-group-append">
-                                                <button class="btn btn-outline-secondary" type="button" id="toggle_confirm_password"><i class="fas fa-eye"></i></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="profile-card__footer">
-                                <button type="submit" class="btn btn-save">
-                                    <i class="fas fa-save"></i> Save Changes
-                                </button>
-                                <a href="{% url 'profile' %}" class="btn btn-cancel">
-                                    <i class="fas fa-times"></i> Cancel
-                                </a>
-                            </div>
-                        </form>
-                    </div>
+                    {% endif %}
+                    <span class="status-indicator online" title="Online"></span>
+                   
                 </div>
             </div>
-        </div>
-    </section>
-</div>
+
+            <div class="profile-user-info">
+                <h2 class="profile-username">{{ user.get_full_name|default:user.username }}</h2>
+                <p class="profile-role">
+                    <span class="role-badge role-{% if user.is_superuser %}admin{% elif user.is_department_head %}depthead{% elif user.is_student %}student{% elif user.is_company_admin %}company{% elif user.is_advisor %}advisor{% elif user.is_supervisor %}supervisor{% else %}user{% endif %}">
+                        {% if user.is_superuser %}System Admin
+                        {% elif user.is_department_head %}Department Head
+                        {% elif user.is_student %}Student
+                        {% elif user.is_company_admin %}Company Admin
+                        {% elif user.is_advisor %}Advisor
+                        {% elif user.is_supervisor %}Supervisor
+                        {% else %}User{% endif %}
+                    </span>
+                </p>
+            </div>
+
+            <hr class="profile-separator">
+
+            <div class="profile-contact-details">
+                <h3 class="details-title">Contact</h3>
+                <ul class="details-list">
+                    <li>
+                        <i class="fas fa-fw fa-user list-icon" aria-hidden="true"></i>
+                        <div class="list-content">
+                            <span class="list-label">Name</span>
+                            <span class="list-value"><a href="mailto:{{ user.email }}">{{ user.username }}</a></span>
+                        </div>
+                    </li>
+                    <li>
+                        <i class="fas fa-fw fa-envelope list-icon" aria-hidden="true"></i>
+                        <div class="list-content">
+                            <span class="list-label">Email</span>
+                            <span class="list-value"><a href="mailto:{{ user.email }}">{{ user.email }}</a></span>
+                        </div>
+                    </li>
+                    <li>
+                        <i class="fas fa-fw fa-phone list-icon" aria-hidden="true"></i>
+                        <div class="list-content">
+                            <span class="list-label">Phone</span>
+                            <span class="list-value">{{ user.phone|default:'Not Provided' }}</span>
+                        </div>
+                    </li>
+                     <li>
+                        <i class="fas fa-fw fa-map-marker-alt list-icon" aria-hidden="true"></i>
+                         <div class="list-content">
+                            <span class="list-label">Address</span>
+                            <span class="list-value">{{ user.address|default:"Not Provided" }}</span>
+                         </div>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Profile Main Content Card -->
+        <section class="profile-card profile-main-card">
+            <div class="profile-card-header">
+                <h3 class="profile-card-title"><i class="fas fa-info-circle mr-2" aria-hidden="true"></i>About Me</h3>
+            </div>
+            <div class="profile-card-body">
+                <div class="about-section">
+                    <h4>Bio</h4>
+                    <p class="text-muted bio-text">
+                        {{ user.bio|default:"No bio information available."|linebreaksbr }}
+                    </p>
+                </div>
+
+                <hr class="profile-separator">
+
+                <div class="about-section">
+                    <h4>Account Information</h4>
+                    <ul class="details-list account-details">
+                        <li>
+                           <i class="fas fa-fw fa-calendar-alt list-icon" aria-hidden="true"></i>
+                           <div class="list-content">
+                               <span class="list-label">Date Joined</span>
+                               <span class="list-value">{{ user.date_joined|date:"F d, Y" }}</span>
+                           </div>
+                        </li>
+                        <li>
+                           <i class="fas fa-fw fa-clock list-icon" aria-hidden="true"></i>
+                           <div class="list-content">
+                               <span class="list-label">Last Login</span>
+                               <span class="list-value">{{ user.last_login|date:"F d, Y, P"|default:"Never" }}</span> {# Added last login #}
+                           </div>
+                        </li>
+                    </ul>
+                </div>
+
+                 {% if user.is_student and student_profile %}
+                 <hr class="profile-separator">
+                 <div class="about-section">
+                     <h4>Academic Information</h4>
+                      <ul class="details-list">
+                         <li>
+                             <i class="fas fa-fw fa-id-card list-icon" aria-hidden="true"></i>
+                             <div class="list-content">
+                                 <span class="list-label">Student ID</span>
+                                 <span class="list-value">{{ student_profile.student_id|default:'N/A' }}</span>
+                             </div>
+                         </li>
+                         <li>
+                             <i class="fas fa-fw fa-building list-icon" aria-hidden="true"></i>
+                             <div class="list-content">
+                                 <span class="list-label">Department</span>
+                                 <span class="list-value">{{ student_profile.department.name|default:'N/A' }}</span>
+                             </div>
+                         </li>
+                      </ul>
+                 </div>
+                 {% endif %}
+
+            </div>
+        </section>
+
+    </div> 
+</div> 
+
 {% endblock %}
+
 
 {% block extra_js %}
-<script src="{% static 'js/image_preview.js' %}"></script>
-<script>
-document.getElementById("verify-password-btn").addEventListener("click", function () {
-    const currentPassword = document.getElementById("id_current_password").value;
-    const resultDiv = document.getElementById("password-check-result");
-    const newPasswordSection = document.getElementById("new-password-section");
-
-    resultDiv.textContent = '';
-    newPasswordSection.style.display = "none";
-
-    fetch("{% url 'verify_current_password' %}", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify({ "current_password": currentPassword })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.valid) {
-            newPasswordSection.style.display = "block";
-        } else {
-            resultDiv.textContent = "Incorrect current password.";
-        }
-    })
-    .catch(() => {
-        resultDiv.textContent = "Error verifying password.";
-    });
-});
-
-function setupPasswordToggle(inputId, toggleBtnId) {
-    const input = document.getElementById(inputId);
-    const toggleBtn = document.getElementById(toggleBtnId);
-
-    toggleBtn.addEventListener('click', function () {
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        this.innerHTML = `<i class="fas fa-eye${isPassword ? '-slash' : ''}"></i>`;
-    });
-}
-
-setupPasswordToggle('id_current_password', 'toggle_current_password');
-setupPasswordToggle('id_new_password', 'toggle_new_password');
-setupPasswordToggle('id_confirm_password', 'toggle_confirm_password');
-</script>
+    <script src="{% static 'js/profile.js' %}?v=1.0"></script>
 {% endblock %}
